@@ -1,6 +1,12 @@
 const pages = {
   home: {
     html: "./pages/home.html"
+  },
+
+  search: {
+    html: "./pages/search.html",
+    css: "./css/search.css",
+    js: "./js/search.js"
   }
 };
 
@@ -13,6 +19,10 @@ const navItems =
   document.querySelectorAll(
     ".nav-item"
   );
+
+let currentPageCss = null;
+
+let currentPageScript = null;
 
 async function loadPage(
   pageName
@@ -29,6 +39,8 @@ async function loadPage(
   }
 
   try {
+    removePageCss();
+
     const response =
       await fetch(page.html);
 
@@ -40,6 +52,10 @@ async function loadPage(
 
     mainScreen.innerHTML =
       await response.text();
+
+    if (page.css) {
+      loadPageCss(page.css);
+    }
 
     setActiveNavigation(
       pageName
@@ -56,6 +72,12 @@ async function loadPage(
       )
     );
 
+    if (page.js) {
+      await loadPageScript(
+        page.js
+      );
+    }
+
   } catch (error) {
     console.error(error);
 
@@ -68,6 +90,59 @@ async function loadPage(
       </section>
     `;
   }
+}
+
+function loadPageCss(
+  cssPath
+) {
+  const link =
+    document.createElement(
+      "link"
+    );
+
+  link.rel = "stylesheet";
+  link.href = cssPath;
+  link.dataset.pageCss = "true";
+
+  document.head.appendChild(
+    link
+  );
+
+  currentPageCss = link;
+}
+
+function removePageCss() {
+  if (currentPageCss) {
+    currentPageCss.remove();
+    currentPageCss = null;
+  }
+}
+
+async function loadPageScript(
+  scriptPath
+) {
+  if (
+    currentPageScript
+  ) {
+    currentPageScript.remove();
+    currentPageScript = null;
+  }
+
+  const script =
+    document.createElement(
+      "script"
+    );
+
+  script.type = "module";
+  script.src =
+    `${scriptPath}?t=${Date.now()}`;
+
+  document.body.appendChild(
+    script
+  );
+
+  currentPageScript =
+    script;
 }
 
 function setActiveNavigation(
@@ -89,9 +164,14 @@ navItems.forEach(
     item.addEventListener(
       "click",
       () => {
-        loadPage(
-          item.dataset.page
-        );
+        const page =
+          item.dataset.page;
+
+        if (
+          pages[page]
+        ) {
+          loadPage(page);
+        }
       }
     );
   }
