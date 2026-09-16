@@ -7,6 +7,12 @@ const pages = {
     html: "./pages/search.html",
     css: "./css/search.css",
     js: "./js/search.js"
+  },
+
+  anime: {
+    html: "./pages/anime.html",
+    css: "./css/anime.css",
+    js: "./js/anime.js"
   }
 };
 
@@ -21,7 +27,6 @@ const navItems =
   );
 
 let currentPageCss = null;
-
 let currentPageScript = null;
 
 async function loadPage(
@@ -79,13 +84,21 @@ async function loadPage(
     }
 
   } catch (error) {
-    console.error(error);
+    console.error(
+      "Page loading error:",
+      error
+    );
 
     mainScreen.innerHTML = `
       <section class="error-screen">
-        <h2>Something went wrong</h2>
+        <h2>
+          Something went wrong
+        </h2>
+
         <p>
-          The page could not be loaded.
+          ${escapeHtml(
+            error.message
+          )}
         </p>
       </section>
     `;
@@ -101,20 +114,28 @@ function loadPageCss(
     );
 
   link.rel = "stylesheet";
+
   link.href = cssPath;
-  link.dataset.pageCss = "true";
+
+  link.dataset.pageCss =
+    "true";
 
   document.head.appendChild(
     link
   );
 
-  currentPageCss = link;
+  currentPageCss =
+    link;
 }
 
 function removePageCss() {
-  if (currentPageCss) {
+  if (
+    currentPageCss
+  ) {
     currentPageCss.remove();
-    currentPageCss = null;
+
+    currentPageCss =
+      null;
   }
 }
 
@@ -125,7 +146,9 @@ async function loadPageScript(
     currentPageScript
   ) {
     currentPageScript.remove();
-    currentPageScript = null;
+
+    currentPageScript =
+      null;
   }
 
   const script =
@@ -133,7 +156,9 @@ async function loadPageScript(
       "script"
     );
 
-  script.type = "module";
+  script.type =
+    "module";
+
   script.src =
     `${scriptPath}?t=${Date.now()}`;
 
@@ -159,6 +184,27 @@ function setActiveNavigation(
   );
 }
 
+function navigateTo(
+  pageName
+) {
+  if (
+    !pages[pageName]
+  ) {
+    console.error(
+      `Unknown page: ${pageName}`
+    );
+
+    return;
+  }
+
+  window.location.hash =
+    pageName;
+
+  loadPage(
+    pageName
+  );
+}
+
 navItems.forEach(
   (item) => {
     item.addEventListener(
@@ -170,7 +216,9 @@ navItems.forEach(
         if (
           pages[page]
         ) {
-          loadPage(page);
+          navigateTo(
+            page
+          );
         }
       }
     );
@@ -184,8 +232,68 @@ document
   .addEventListener(
     "click",
     () => {
-      loadPage("search");
+      navigateTo(
+        "search"
+      );
     }
   );
 
-loadPage("home");
+window.addEventListener(
+  "hashchange",
+  () => {
+    const pageName =
+      window.location.hash
+        .replace(
+          "#",
+          ""
+        ) ||
+      "home";
+
+    if (
+      pages[pageName]
+    ) {
+      loadPage(
+        pageName
+      );
+    }
+  }
+);
+
+function escapeHtml(
+  value
+) {
+  return String(value)
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
+}
+
+const initialPage =
+  window.location.hash
+    .replace(
+      "#",
+      ""
+    ) || "home";
+
+loadPage(
+  pages[initialPage]
+    ? initialPage
+    : "home"
+);
