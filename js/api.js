@@ -1,5 +1,5 @@
 const API_BASE_URL =
-"https://YOUR-RENDER-BACKEND-URL.onrender.com";
+"https://johnny-anime-backend.onrender.com";
 
 async function request(
 endpoint,
