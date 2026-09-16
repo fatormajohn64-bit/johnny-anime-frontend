@@ -29,13 +29,21 @@ const backButton =
 
 let searchTimer = null;
 
+let lastQuery = "";
+
+/*
+|--------------------------------------------------------------------------
+| Search input
+|--------------------------------------------------------------------------
+*/
+
 input?.addEventListener(
   "input",
   () => {
     const value =
       input.value.trim();
 
-    clearButton.classList.toggle(
+    clearButton?.classList.toggle(
       "visible",
       value.length > 0
     );
@@ -50,6 +58,14 @@ input?.addEventListener(
       status.textContent =
         "Search for an anime to begin.";
 
+      lastQuery = "";
+
+      return;
+    }
+
+    if (
+      value === lastQuery
+    ) {
       return;
     }
 
@@ -65,6 +81,12 @@ input?.addEventListener(
   }
 );
 
+/*
+|--------------------------------------------------------------------------
+| Clear search
+|--------------------------------------------------------------------------
+*/
+
 clearButton?.addEventListener(
   "click",
   () => {
@@ -79,42 +101,67 @@ clearButton?.addEventListener(
     status.textContent =
       "Search for an anime to begin.";
 
+    lastQuery = "";
+
     input.focus();
   }
 );
 
+/*
+|--------------------------------------------------------------------------
+| Back button
+|--------------------------------------------------------------------------
+*/
+
 backButton?.addEventListener(
   "click",
   () => {
-    window.location.hash =
-      "home";
+    navigateHome();
   }
 );
+
+/*
+|--------------------------------------------------------------------------
+| Perform search
+|--------------------------------------------------------------------------
+*/
 
 async function performSearch(
   query
 ) {
+  const cleanQuery =
+    query.trim();
+
+  if (!cleanQuery) {
+    return;
+  }
+
+  lastQuery =
+    cleanQuery;
+
   status.textContent =
     "Searching...";
 
   results.innerHTML = `
     <div class="search-loading">
-      Searching AniList...
+      Searching anime...
     </div>
   `;
 
   try {
     const response =
       await searchAnime(
-        query
+        cleanQuery
       );
 
-    const anime =
-      response?.result ||
-      response?.data ||
-      [];
+    const animeList =
+      extractAnimeResults(
+        response
+      );
 
-    renderResults(anime);
+    renderResults(
+      animeList
+    );
 
   } catch (error) {
     console.error(
@@ -124,6 +171,7 @@ async function performSearch(
 
     results.innerHTML = `
       <div class="search-empty">
+
         <div class="search-empty-icon">
           ⚠
         </div>
@@ -138,6 +186,7 @@ async function performSearch(
             "Unable to search right now."
           )}
         </p>
+
       </div>
     `;
 
@@ -145,6 +194,64 @@ async function performSearch(
       "Unable to complete search.";
   }
 }
+
+/*
+|--------------------------------------------------------------------------
+| Extract results
+|--------------------------------------------------------------------------
+*/
+
+function extractAnimeResults(
+  response
+) {
+  if (
+    Array.isArray(
+      response
+    )
+  ) {
+    return response;
+  }
+
+  if (
+    Array.isArray(
+      response?.result
+    )
+  ) {
+    return response.result;
+  }
+
+  if (
+    Array.isArray(
+      response?.data
+    )
+  ) {
+    return response.data;
+  }
+
+  if (
+    Array.isArray(
+      response?.data?.Page?.media
+    )
+  ) {
+    return response.data.Page.media;
+  }
+
+  if (
+    Array.isArray(
+      response?.Page?.media
+    )
+  ) {
+    return response.Page.media;
+  }
+
+  return [];
+}
+
+/*
+|--------------------------------------------------------------------------
+| Render results
+|--------------------------------------------------------------------------
+*/
 
 function renderResults(
   animeList
@@ -157,6 +264,7 @@ function renderResults(
   ) {
     results.innerHTML = `
       <div class="search-empty">
+
         <div class="search-empty-icon">
           🔎
         </div>
@@ -168,6 +276,7 @@ function renderResults(
         <p>
           Try another title or search term.
         </p>
+
       </div>
     `;
 
@@ -187,25 +296,44 @@ function renderResults(
   results.innerHTML =
     animeList
       .map(
-        (anime) =>
+        (
+          anime
+        ) =>
           createAnimeCard(
             anime
           )
       )
       .join("");
+
+  attachCardEvents();
 }
+
+/*
+|--------------------------------------------------------------------------
+| Anime card
+|--------------------------------------------------------------------------
+*/
 
 function createAnimeCard(
   anime
 ) {
+  const id =
+    anime?.id ||
+    anime?.anilist_id ||
+    "";
+
   const title =
     anime?.title?.english ||
     anime?.title?.romaji ||
     anime?.title?.native ||
+    anime?.title_english ||
+    anime?.title_romaji ||
+    anime?.title_native ||
     "Unknown Anime";
 
   const cover =
     anime?.coverImage?.large ||
+    anime?.coverImage?.medium ||
     anime?.cover_image ||
     "";
 
@@ -214,34 +342,51 @@ function createAnimeCard(
     "UNKNOWN";
 
   const episodes =
-    anime?.episodes ||
+    anime?.episodes ??
+    anime?.total_episodes ??
     "—";
+
+  const year =
+    anime?.seasonYear ||
+    anime?.season_year ||
+    "";
+
+  const posterMarkup =
+    cover
+      ? `
+        <img
+          src="${escapeAttribute(
+            cover
+          )}"
+          alt="${escapeAttribute(
+            title
+          )}"
+          loading="lazy"
+        >
+      `
+      : `
+        <div
+          class="anime-cover-placeholder"
+        >
+          <span>
+            ${escapeHtml(
+              title
+            )}
+          </span>
+        </div>
+      `;
 
   return `
     <article
       class="anime-card"
-      data-anilist-id="${
-        anime?.id || ""
-      }"
+      data-anilist-id="${escapeAttribute(
+        id
+      )}"
     >
 
       <div class="anime-cover">
 
-        ${
-          cover
-            ? `
-              <img
-                src="${escapeAttribute(
-                  cover
-                )}"
-                alt="${escapeAttribute(
-                  title
-                )}"
-                loading="lazy"
-              >
-            `
-            : ""
-        }
+        ${posterMarkup}
 
         <span class="anime-format">
           ${escapeHtml(
@@ -253,17 +398,30 @@ function createAnimeCard(
 
       <div class="anime-card-info">
 
-        <h3 class="anime-card-title">
+        <h3
+          class="anime-card-title"
+        >
           ${escapeHtml(
             title
           )}
         </h3>
 
-        <p class="anime-card-meta">
+        <p
+          class="anime-card-meta"
+        >
           ${escapeHtml(
-            String(episodes)
+            String(
+              episodes
+            )
           )}
           episodes
+          ${
+            year
+              ? ` • ${escapeHtml(
+                  year
+                )}`
+              : ""
+          }
         </p>
 
       </div>
@@ -271,6 +429,62 @@ function createAnimeCard(
     </article>
   `;
 }
+
+/*
+|--------------------------------------------------------------------------
+| Card click events
+|--------------------------------------------------------------------------
+*/
+
+function attachCardEvents() {
+  document
+    .querySelectorAll(
+      ".anime-card"
+    )
+    .forEach(
+      (
+        card
+      ) => {
+        card.addEventListener(
+          "click",
+          () => {
+            const id =
+              card.dataset
+                .anilistId;
+
+            if (!id) {
+              return;
+            }
+
+            sessionStorage.setItem(
+              "selectedAnimeId",
+              id
+            );
+
+            window.location.hash =
+              "anime";
+          }
+        );
+      }
+    );
+}
+
+/*
+|--------------------------------------------------------------------------
+| Navigation
+|--------------------------------------------------------------------------
+*/
+
+function navigateHome() {
+  window.location.hash =
+    "home";
+}
+
+/*
+|--------------------------------------------------------------------------
+| HTML escaping
+|--------------------------------------------------------------------------
+*/
 
 function escapeHtml(
   value
