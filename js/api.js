@@ -1,411 +1,387 @@
 const API_BASE_URL =
-  "https://johnny-anime-backend.onrender.com";
-
+"https://YOUR-RENDER-BACKEND-URL.onrender.com";
 
 async function request(
-  endpoint,
-  options = {}
+endpoint,
+options = {}
 ) {
-  const response =
-    await fetch(
-      `${API_BASE_URL}${endpoint}`,
-      {
-        ...options,
+const response =
+await fetch(
+"${API_BASE_URL}${endpoint}",
+{
+...options,
 
-        headers: {
-          "Content-Type":
-            "application/json",
+    headers: {
+      "Content-Type":
+        "application/json",
 
-          ...(options.headers || {})
-        }
-      }
-    );
-
-  let data = null;
-
-  try {
-    data =
-      await response.json();
-  } catch {
-    data = null;
+      ...(options.headers || {})
+    }
   }
+);
 
-  if (!response.ok) {
-    throw new Error(
-      data?.error ||
-      data?.message ||
-      `Request failed: ${response.status}`
-    );
-  }
+let data = null;
 
-  return data;
+try {
+data =
+await response.json();
+} catch {
+data = null;
 }
 
+if (!response.ok) {
+throw new Error(
+data?.error ||
+data?.message ||
+"Request failed: ${response.status}"
+);
+}
+
+return data;
+}
 
 /* =========================
-   HEALTH
+HEALTH
 ========================= */
 
 export async function checkHealth() {
-  return request(
-    "/api/health"
-  );
+return request(
+"/api/health"
+);
 }
 
 export async function checkDatabaseHealth() {
-  return request(
-    "/api/database/health"
-  );
+return request(
+"/api/database/health"
+);
 }
 
-
 /* =========================
-   ANIME
+ANIME
 ========================= */
 
 export async function searchAnime(
-  query
+query
 ) {
-  return request(
-    `/api/anime/search?search=${encodeURIComponent(
-      query
-    )}`
-  );
+return request(
+"/api/anime/search?search=${encodeURIComponent( query )}"
+);
 }
 
 export async function getAnimeById(
-  id
+id
 ) {
-  return request(
-    `/api/anime/${encodeURIComponent(
-      id
-    )}`
-  );
+return request(
+"/api/anime/${encodeURIComponent( id )}"
+);
 }
 
-
 /* =========================
-   LIBRARY
+LIBRARY
 ========================= */
 
 export async function getLibrary() {
-  return request(
-    "/api/library"
-  );
+return request(
+"/api/library"
+);
 }
 
 export async function addToLibrary(
-  anime
+anime
 ) {
-  return request(
-    "/api/library",
-    {
-      method: "POST",
+return request(
+"/api/library",
+{
+method: "POST",
 
-      body: JSON.stringify(
-        anime
-      )
-    }
-  );
+  body: JSON.stringify(
+    anime
+  )
+}
+
+);
 }
 
 export async function getLibraryItem(
-  id
+id
 ) {
-  return request(
-    `/api/library/${encodeURIComponent(
-      id
-    )}`
-  );
+return request(
+"/api/library/${encodeURIComponent( id )}"
+);
 }
 
 export async function removeFromLibrary(
-  id
+id
 ) {
-  return request(
-    `/api/library/${encodeURIComponent(
-      id
-    )}`,
-    {
-      method: "DELETE"
-    }
-  );
+return request(
+"/api/library/${encodeURIComponent( id )}",
+{
+method: "DELETE"
+}
+);
 }
 
-
 /* =========================
-   SEASONS
+SEASONS
 ========================= */
 
 export async function getSeasons(
-  animeId
+animeId
 ) {
-  return request(
-    `/api/anime/${encodeURIComponent(
-      animeId
-    )}/seasons`
-  );
+return request(
+"/api/anime/${encodeURIComponent( animeId )}/seasons"
+);
 }
 
 export async function createSeason(
-  animeId,
-  season
+animeId,
+season
 ) {
-  return request(
-    `/api/anime/${encodeURIComponent(
-      animeId
-    )}/seasons`,
-    {
-      method: "POST",
+return request(
+"/api/anime/${encodeURIComponent( animeId )}/seasons",
+{
+method: "POST",
 
-      body: JSON.stringify(
-        season
-      )
-    }
-  );
+  body: JSON.stringify(
+    season
+  )
 }
 
+);
+}
 
 /* =========================
-   EPISODES
+EPISODE SYNC
+========================= */
+
+export async function syncAnimeEpisodes(
+anilistId
+) {
+return request(
+"/api/episode-sync/anilist/${encodeURIComponent( anilistId )}",
+{
+method: "POST"
+}
+);
+}
+
+/* =========================
+EPISODES
 ========================= */
 
 export async function getEpisodes(
-  seasonId
+seasonId
 ) {
-  return request(
-    `/api/season/${encodeURIComponent(
-      seasonId
-    )}/episodes`
-  );
+return request(
+"/api/season/${encodeURIComponent( seasonId )}/episodes"
+);
 }
 
 export async function createEpisode(
-  seasonId,
-  episode
+seasonId,
+episode
 ) {
-  return request(
-    `/api/season/${encodeURIComponent(
-      seasonId
-    )}/episodes`,
-    {
-      method: "POST",
+return request(
+"/api/season/${encodeURIComponent( seasonId )}/episodes",
+{
+method: "POST",
 
-      body: JSON.stringify(
-        episode
-      )
-    }
-  );
+  body: JSON.stringify(
+    episode
+  )
+}
+
+);
 }
 
 export async function getEpisode(
-  episodeId
+episodeId
 ) {
-  return request(
-    `/api/episode/${encodeURIComponent(
-      episodeId
-    )}`
-  );
+return request(
+"/api/episode/${encodeURIComponent( episodeId )}"
+);
 }
 
-
 /* =========================
-   VIDEO SOURCES
+VIDEO SOURCES
 ========================= */
 
 export async function getVideoSources(
-  episodeId
+episodeId
 ) {
-  return request(
-    `/api/episode/${encodeURIComponent(
-      episodeId
-    )}/video-sources`
-  );
+return request(
+"/api/episode/${encodeURIComponent( episodeId )}/video-sources"
+);
 }
 
-
 /* =========================
-   WATCH PROGRESS
+WATCH PROGRESS
 ========================= */
 
 export async function getWatchProgress(
-  episodeId
+episodeId
 ) {
-  return request(
-    `/api/watch-progress/${encodeURIComponent(
-      episodeId
-    )}`
-  );
+return request(
+"/api/watch-progress/${encodeURIComponent( episodeId )}"
+);
 }
 
 export async function saveWatchProgress(
-  episodeId,
-  progress
+episodeId,
+progress
 ) {
-  return request(
-    `/api/watch-progress/${encodeURIComponent(
-      episodeId
-    )}`,
-    {
-      method: "POST",
+return request(
+"/api/watch-progress/${encodeURIComponent( episodeId )}",
+{
+method: "POST",
 
-      body: JSON.stringify(
-        progress
-      )
-    }
-  );
+  body: JSON.stringify(
+    progress
+  )
 }
 
+);
+}
 
 /* =========================
-   PLAYER
+PLAYER
 ========================= */
 
 export async function getPlayerData(
-  episodeId
+episodeId
 ) {
-  return request(
-    `/api/player/${encodeURIComponent(
-      episodeId
-    )}`
-  );
+return request(
+"/api/player/${encodeURIComponent( episodeId )}"
+);
 }
 
-
 /* =========================
-   CONTINUE WATCHING
+CONTINUE WATCHING
 ========================= */
 
 export async function getContinueWatching() {
-  return request(
-    "/api/continue-watching"
-  );
+return request(
+"/api/continue-watching"
+);
 }
 
-
 /* =========================
-   WATCH HISTORY
+WATCH HISTORY
 ========================= */
 
 export async function getWatchHistory() {
-  return request(
-    "/api/watch-history"
-  );
+return request(
+"/api/watch-history"
+);
 }
 
-
 /* =========================
-   RESUME
+RESUME
 ========================= */
 
 export async function getResume(
-  episodeId
+episodeId
 ) {
-  return request(
-    `/api/resume/${encodeURIComponent(
-      episodeId
-    )}`
-  );
+return request(
+"/api/resume/${encodeURIComponent( episodeId )}"
+);
 }
 
-
 /* =========================
-   FAVORITES
+FAVORITES
 ========================= */
 
 export async function getFavorites() {
-  return request(
-    "/api/favorites"
-  );
+return request(
+"/api/favorites"
+);
 }
 
 export async function addFavorite(
-  animeId
+animeId
 ) {
-  return request(
-    "/api/favorites",
-    {
-      method: "POST",
+return request(
+"/api/favorites",
+{
+method: "POST",
 
-      body: JSON.stringify({
-        animeId
-      })
-    }
-  );
+  body: JSON.stringify({
+    animeId
+  })
+}
+
+);
 }
 
 export async function removeFavorite(
-  animeId
+animeId
 ) {
-  return request(
-    `/api/favorites/${encodeURIComponent(
-      animeId
-    )}`,
-    {
-      method: "DELETE"
-    }
-  );
+return request(
+"/api/favorites/${encodeURIComponent( animeId )}",
+{
+method: "DELETE"
+}
+);
 }
 
-
 /* =========================
-   DASHBOARD
+DASHBOARD
 ========================= */
 
 export async function getDashboard() {
-  return request(
-    "/api/dashboard"
-  );
+return request(
+"/api/dashboard"
+);
 }
 
-
 /* =========================
-   DOWNLOADS
+DOWNLOADS
 ========================= */
 
 export async function getDownloads() {
-  return request(
-    "/api/downloads"
-  );
+return request(
+"/api/downloads"
+);
 }
 
 export async function createDownload(
-  download
+download
 ) {
-  return request(
-    "/api/downloads",
-    {
-      method: "POST",
+return request(
+"/api/downloads",
+{
+method: "POST",
 
-      body: JSON.stringify(
-        download
-      )
-    }
-  );
+  body: JSON.stringify(
+    download
+  )
 }
 
+);
+}
 
 /* =========================
-   SETTINGS
+SETTINGS
 ========================= */
 
 export async function getSettings() {
-  return request(
-    "/api/settings"
-  );
+return request(
+"/api/settings"
+);
 }
 
 export async function updateSettings(
-  settings
+settings
 ) {
-  return request(
-    "/api/settings",
-    {
-      method: "POST",
+return request(
+"/api/settings",
+{
+method: "POST",
 
-      body: JSON.stringify(
-        settings
-      )
-    }
-  );
+  body: JSON.stringify(
+    settings
+  )
+}
+
+);
 }
