@@ -93,12 +93,10 @@ return request(
 "/api/library",
 {
 method: "POST",
-
-  body: JSON.stringify(
-    anime
-  )
+body: JSON.stringify(
+anime
+)
 }
-
 );
 }
 
@@ -141,12 +139,10 @@ return request(
 "/api/anime/${encodeURIComponent( animeId )}/seasons",
 {
 method: "POST",
-
-  body: JSON.stringify(
-    season
-  )
+body: JSON.stringify(
+season
+)
 }
-
 );
 }
 
@@ -185,12 +181,10 @@ return request(
 "/api/season/${encodeURIComponent( seasonId )}/episodes",
 {
 method: "POST",
-
-  body: JSON.stringify(
-    episode
-  )
+body: JSON.stringify(
+episode
+)
 }
-
 );
 }
 
@@ -234,12 +228,10 @@ return request(
 "/api/watch-progress/${encodeURIComponent( episodeId )}",
 {
 method: "POST",
-
-  body: JSON.stringify(
-    progress
-  )
+body: JSON.stringify(
+progress
+)
 }
-
 );
 }
 
@@ -304,12 +296,10 @@ return request(
 "/api/favorites",
 {
 method: "POST",
-
-  body: JSON.stringify({
-    animeId
-  })
+body: JSON.stringify({
+animeId
+})
 }
-
 );
 }
 
@@ -351,12 +341,10 @@ return request(
 "/api/downloads",
 {
 method: "POST",
-
-  body: JSON.stringify(
-    download
-  )
+body: JSON.stringify(
+download
+)
 }
-
 );
 }
 
@@ -377,11 +365,9 @@ return request(
 "/api/settings",
 {
 method: "POST",
-
-  body: JSON.stringify(
-    settings
-  )
+body: JSON.stringify(
+settings
+)
 }
-
 );
 }
