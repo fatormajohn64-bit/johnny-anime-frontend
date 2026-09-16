@@ -5,8 +5,10 @@ async function request(
 endpoint,
 options = {}
 ) {
-const response =
-await fetch(
+let response;
+
+try {
+response = await fetch(
 "${API_BASE_URL}${endpoint}",
 {
 ...options,
@@ -20,11 +22,16 @@ await fetch(
   }
 );
 
+} catch (error) {
+throw new Error(
+"Unable to connect to the Johnny Anime backend."
+);
+}
+
 let data = null;
 
 try {
-data =
-await response.json();
+data = await response.json();
 } catch {
 data = null;
 }
