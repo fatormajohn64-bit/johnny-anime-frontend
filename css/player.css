@@ -1,0 +1,503 @@
+.player-page {
+  min-height: calc(100vh - 150px);
+  padding-bottom: 35px;
+}
+
+
+/* =========================
+   TOP BAR
+========================= */
+
+.player-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 12px 20px;
+
+  background:
+    rgba(9, 9, 9, 0.95);
+
+  border-bottom:
+    1px solid var(--border);
+
+  backdrop-filter: blur(18px);
+}
+
+.player-back {
+  width: 40px;
+  height: 40px;
+
+  display: grid;
+  place-items: center;
+
+  flex-shrink: 0;
+
+  border-radius: 11px;
+
+  background:
+    var(--surface-light);
+
+  border:
+    1px solid var(--border);
+
+  color: #ffffff;
+
+  font-size: 21px;
+}
+
+.player-heading {
+  display: flex;
+  flex-direction: column;
+
+  min-width: 0;
+}
+
+.player-heading span {
+  color: var(--accent);
+
+  font-size: 9px;
+  font-weight: 900;
+
+  letter-spacing: 1.8px;
+}
+
+.player-heading strong {
+  max-width: 230px;
+
+  overflow: hidden;
+
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 800;
+
+  white-space: nowrap;
+
+  text-overflow: ellipsis;
+}
+
+
+/* =========================
+   CONTENT
+========================= */
+
+.player-content {
+  max-width: 1100px;
+
+  margin: 0 auto;
+}
+
+
+/* =========================
+   VIDEO
+========================= */
+
+.video-container {
+  position: relative;
+
+  width: 100%;
+
+  aspect-ratio: 16 / 9;
+
+  overflow: hidden;
+
+  background: #000000;
+
+  border-bottom:
+    1px solid var(--border);
+}
+
+.anime-video {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  background: #000000;
+}
+
+.video-placeholder {
+  position: absolute;
+
+  inset: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 25px;
+
+  text-align: center;
+
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(255, 106, 0, 0.1),
+      transparent 60%
+    );
+}
+
+.video-placeholder.hidden {
+  display: none;
+}
+
+.video-placeholder-icon {
+  width: 60px;
+  height: 60px;
+
+  display: grid;
+  place-items: center;
+
+  margin-bottom: 15px;
+
+  border-radius: 50%;
+
+  background:
+    rgba(255, 106, 0, 0.12);
+
+  border:
+    1px solid
+    rgba(255, 106, 0, 0.2);
+
+  color: var(--accent);
+
+  font-size: 20px;
+}
+
+.video-placeholder h2 {
+  margin-bottom: 7px;
+
+  font-size: 17px;
+}
+
+.video-placeholder p {
+  max-width: 300px;
+
+  color: #777777;
+
+  font-size: 11px;
+
+  line-height: 1.6;
+}
+
+
+/* =========================
+   PLAYER INFO
+========================= */
+
+.player-info {
+  padding: 20px;
+}
+
+.player-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 15px;
+}
+
+.player-label {
+  margin-bottom: 6px;
+
+  color: var(--accent);
+
+  font-size: 9px;
+  font-weight: 900;
+
+  letter-spacing: 1.8px;
+}
+
+.player-title-row h1 {
+  font-size: 21px;
+  font-weight: 900;
+
+  line-height: 1.2;
+}
+
+.player-episode-number {
+  display: grid;
+  place-items: center;
+
+  min-width: 42px;
+  height: 42px;
+
+  padding: 0 8px;
+
+  border-radius: 11px;
+
+  background:
+    var(--surface-light);
+
+  border:
+    1px solid var(--border);
+
+  color: var(--accent);
+
+  font-size: 12px;
+  font-weight: 900;
+}
+
+
+/* =========================
+   PROGRESS
+========================= */
+
+.player-progress-info {
+  margin-top: 20px;
+}
+
+.player-progress-info > div:first-child {
+  display: flex;
+  justify-content: space-between;
+
+  margin-bottom: 8px;
+
+  color: #777777;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.player-progress-info strong {
+  color: var(--accent);
+}
+
+.player-progress-track {
+  width: 100%;
+  height: 4px;
+
+  overflow: hidden;
+
+  border-radius: 10px;
+
+  background: #252525;
+}
+
+.player-progress-bar {
+  width: 0%;
+  height: 100%;
+
+  border-radius: inherit;
+
+  background: var(--accent);
+
+  transition: width 0.2s ease;
+}
+
+
+/* =========================
+   CONTROLS
+========================= */
+
+.player-controls {
+  display: flex;
+
+  justify-content: space-between;
+
+  gap: 10px;
+
+  margin-top: 18px;
+}
+
+.player-control-button {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  padding: 10px 13px;
+
+  border-radius: 10px;
+
+  background:
+    var(--surface-light);
+
+  border:
+    1px solid var(--border);
+
+  color: #bbbbbb;
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.player-control-button:first-child {
+  margin-right: auto;
+}
+
+.player-control-button:last-child {
+  margin-left: auto;
+}
+
+.player-control-button:hover {
+  background: #202020;
+  color: #ffffff;
+}
+
+.player-control-button > :first-child {
+  font-size: 20px;
+  line-height: 1;
+}
+
+
+/* =========================
+   SOURCES
+========================= */
+
+.source-section {
+  padding: 0 20px;
+}
+
+.source-section .section-heading {
+  margin-bottom: 13px;
+}
+
+.video-source-list {
+  display: flex;
+  flex-direction: column;
+
+  gap: 8px;
+}
+
+.video-source {
+  display: flex;
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 12px;
+
+  padding: 13px;
+
+  background:
+    var(--surface);
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 12px;
+}
+
+.video-source-info {
+  min-width: 0;
+}
+
+.video-source-name {
+  margin-bottom: 4px;
+
+  color: #ffffff;
+
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.video-source-quality {
+  color: #777777;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.video-source-select {
+  padding: 8px 11px;
+
+  border-radius: 8px;
+
+  background:
+    rgba(255, 106, 0, 0.1);
+
+  border:
+    1px solid
+    rgba(255, 106, 0, 0.2);
+
+  color: var(--accent);
+
+  font-size: 10px;
+  font-weight: 900;
+}
+
+
+/* =========================
+   LOADING
+========================= */
+
+.player-loading {
+  padding: 25px;
+
+  text-align: center;
+
+  color: #777777;
+
+  font-size: 11px;
+
+  background:
+    var(--surface);
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 12px;
+}
+
+
+/* =========================
+   DESKTOP
+========================= */
+
+@media (min-width: 768px) {
+  .player-topbar {
+    padding:
+      14px 30px;
+  }
+
+  .player-info {
+    padding:
+      25px 30px;
+  }
+
+  .source-section {
+    padding:
+      0 30px;
+  }
+
+  .video-container {
+    border-radius: 0;
+  }
+}
+
+
+@media (min-width: 900px) {
+  .player-topbar {
+    padding:
+      14px 40px;
+  }
+
+  .player-info {
+    padding:
+      30px 40px;
+  }
+
+  .source-section {
+    padding:
+      0 40px;
+  }
+
+  .player-title-row h1 {
+    font-size: 26px;
+  }
+}
+
+
+/* =========================
+   REDUCED MOTION
+========================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .player-progress-bar {
+    transition: none;
+  }
+}
