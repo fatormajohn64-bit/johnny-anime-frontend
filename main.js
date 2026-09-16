@@ -28,10 +28,18 @@ const mainScreen =
     "main-screen"
   );
 
+
 const navItems =
   document.querySelectorAll(
     ".nav-item"
   );
+
+
+const navCenter =
+  document.querySelector(
+    ".nav-center"
+  );
+
 
 const searchButton =
   document.getElementById(
@@ -62,28 +70,34 @@ async function loadPage(
     return;
   }
 
+
   if (
     currentPage === pageName
   ) {
     return;
   }
 
+
   currentPage =
     pageName;
 
+
   try {
     removePageCss();
+
 
     const response =
       await fetch(
         page.html
       );
 
+
     if (!response.ok) {
       throw new Error(
         `Failed to load ${pageName} page.`
       );
     }
+
 
     mainScreen.innerHTML =
       await response.text();
@@ -125,6 +139,7 @@ async function loadPage(
       error
     );
 
+
     mainScreen.innerHTML = `
       <section class="error-screen">
 
@@ -156,18 +171,23 @@ function loadPageCss(
       "link"
     );
 
+
   link.rel =
     "stylesheet";
+
 
   link.href =
     cssPath;
 
+
   link.dataset.pageCss =
     "true";
+
 
   document.head.appendChild(
     link
   );
+
 
   currentPageCss =
     link;
@@ -208,8 +228,10 @@ async function loadPageScript(
       "script"
     );
 
+
   script.type =
     "module";
+
 
   script.src =
     `${scriptPath}?t=${Date.now()}`;
@@ -218,6 +240,7 @@ async function loadPageScript(
   document.body.appendChild(
     script
   );
+
 
   currentPageScript =
     script;
@@ -242,6 +265,17 @@ function setActiveNavigation(
       );
     }
   );
+
+
+  if (
+    navCenter
+  ) {
+    navCenter.classList.toggle(
+      "active",
+      navCenter.dataset.page ===
+        pageName
+    );
+  }
 }
 
 
@@ -285,7 +319,7 @@ function navigateTo(
 
 
 /* =========================
-   BOTTOM NAV
+   BOTTOM NAV ITEMS
 ========================= */
 
 navItems.forEach(
@@ -298,6 +332,7 @@ navItems.forEach(
         const page =
           item.dataset.page;
 
+
         if (
           pages[page]
         ) {
@@ -306,6 +341,20 @@ navItems.forEach(
           );
         }
       }
+    );
+  }
+);
+
+
+/* =========================
+   CENTER PLAYER BUTTON
+========================= */
+
+navCenter?.addEventListener(
+  "click",
+  () => {
+    navigateTo(
+      "player"
     );
   }
 );
