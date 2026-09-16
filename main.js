@@ -13,8 +13,15 @@ const pages = {
     html: "./pages/anime.html",
     css: "./css/anime.css",
     js: "./js/anime.js"
+  },
+
+  player: {
+    html: "./pages/player.html",
+    css: "./css/player.css",
+    js: "./js/player.js"
   }
 };
+
 
 const mainScreen =
   document.getElementById(
@@ -26,8 +33,20 @@ const navItems =
     ".nav-item"
   );
 
+const searchButton =
+  document.getElementById(
+    "search-button"
+  );
+
+
 let currentPageCss = null;
 let currentPageScript = null;
+let currentPage = null;
+
+
+/* =========================
+   LOAD PAGE
+========================= */
 
 async function loadPage(
   pageName
@@ -43,28 +62,44 @@ async function loadPage(
     return;
   }
 
+  if (
+    currentPage === pageName
+  ) {
+    return;
+  }
+
+  currentPage =
+    pageName;
+
   try {
     removePageCss();
 
     const response =
-      await fetch(page.html);
+      await fetch(
+        page.html
+      );
 
     if (!response.ok) {
       throw new Error(
-        `Failed to load ${pageName}`
+        `Failed to load ${pageName} page.`
       );
     }
 
     mainScreen.innerHTML =
       await response.text();
 
+
     if (page.css) {
-      loadPageCss(page.css);
+      loadPageCss(
+        page.css
+      );
     }
+
 
     setActiveNavigation(
       pageName
     );
+
 
     window.dispatchEvent(
       new CustomEvent(
@@ -76,6 +111,7 @@ async function loadPage(
         }
       )
     );
+
 
     if (page.js) {
       await loadPageScript(
@@ -91,6 +127,7 @@ async function loadPage(
 
     mainScreen.innerHTML = `
       <section class="error-screen">
+
         <h2>
           Something went wrong
         </h2>
@@ -100,10 +137,16 @@ async function loadPage(
             error.message
           )}
         </p>
+
       </section>
     `;
   }
 }
+
+
+/* =========================
+   PAGE CSS
+========================= */
 
 function loadPageCss(
   cssPath
@@ -113,9 +156,11 @@ function loadPageCss(
       "link"
     );
 
-  link.rel = "stylesheet";
+  link.rel =
+    "stylesheet";
 
-  link.href = cssPath;
+  link.href =
+    cssPath;
 
   link.dataset.pageCss =
     "true";
@@ -128,6 +173,7 @@ function loadPageCss(
     link;
 }
 
+
 function removePageCss() {
   if (
     currentPageCss
@@ -138,6 +184,11 @@ function removePageCss() {
       null;
   }
 }
+
+
+/* =========================
+   PAGE SCRIPT
+========================= */
 
 async function loadPageScript(
   scriptPath
@@ -151,6 +202,7 @@ async function loadPageScript(
       null;
   }
 
+
   const script =
     document.createElement(
       "script"
@@ -162,6 +214,7 @@ async function loadPageScript(
   script.src =
     `${scriptPath}?t=${Date.now()}`;
 
+
   document.body.appendChild(
     script
   );
@@ -170,11 +223,18 @@ async function loadPageScript(
     script;
 }
 
+
+/* =========================
+   NAVIGATION STATE
+========================= */
+
 function setActiveNavigation(
   pageName
 ) {
   navItems.forEach(
-    (item) => {
+    (
+      item
+    ) => {
       item.classList.toggle(
         "active",
         item.dataset.page ===
@@ -183,6 +243,11 @@ function setActiveNavigation(
     }
   );
 }
+
+
+/* =========================
+   NAVIGATE
+========================= */
 
 function navigateTo(
   pageName
@@ -197,16 +262,36 @@ function navigateTo(
     return;
   }
 
+
+  const newHash =
+    `#${pageName}`;
+
+
+  if (
+    window.location.hash ===
+    newHash
+  ) {
+    loadPage(
+      pageName
+    );
+
+    return;
+  }
+
+
   window.location.hash =
     pageName;
-
-  loadPage(
-    pageName
-  );
 }
 
+
+/* =========================
+   BOTTOM NAV
+========================= */
+
 navItems.forEach(
-  (item) => {
+  (
+    item
+  ) => {
     item.addEventListener(
       "click",
       () => {
@@ -225,18 +310,24 @@ navItems.forEach(
   }
 );
 
-document
-  .getElementById(
-    "search-button"
-  )
-  .addEventListener(
-    "click",
-    () => {
-      navigateTo(
-        "search"
-      );
-    }
-  );
+
+/* =========================
+   SEARCH BUTTON
+========================= */
+
+searchButton?.addEventListener(
+  "click",
+  () => {
+    navigateTo(
+      "search"
+    );
+  }
+);
+
+
+/* =========================
+   HASH CHANGE
+========================= */
 
 window.addEventListener(
   "hashchange",
@@ -246,8 +337,10 @@ window.addEventListener(
         .replace(
           "#",
           ""
-        ) ||
+        )
+        .trim() ||
       "home";
+
 
     if (
       pages[pageName]
@@ -255,9 +348,21 @@ window.addEventListener(
       loadPage(
         pageName
       );
+
+      return;
     }
+
+
+    navigateTo(
+      "home"
+    );
   }
 );
+
+
+/* =========================
+   ESCAPE HTML
+========================= */
 
 function escapeHtml(
   value
@@ -285,12 +390,20 @@ function escapeHtml(
     );
 }
 
+
+/* =========================
+   INITIAL PAGE
+========================= */
+
 const initialPage =
   window.location.hash
     .replace(
       "#",
       ""
-    ) || "home";
+    )
+    .trim() ||
+  "home";
+
 
 loadPage(
   pages[initialPage]
