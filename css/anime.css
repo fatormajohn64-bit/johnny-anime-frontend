@@ -94,6 +94,19 @@
     );
 }
 
+.anime-banner {
+  position: absolute;
+
+  inset: 0;
+
+  background-position: center;
+  background-size: cover;
+
+  opacity: 0.28;
+
+  filter: blur(1px);
+}
+
 .anime-hero::after {
   content: "";
 
@@ -223,6 +236,15 @@
   line-height: 1;
 
   letter-spacing: -2px;
+}
+
+.anime-alt-titles {
+  margin-bottom: 8px;
+
+  color: #666666;
+
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .anime-meta {
