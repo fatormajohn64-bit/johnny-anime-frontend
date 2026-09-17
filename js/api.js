@@ -1,410 +1,260 @@
-const API_BASE_URL =
-"https://johnny-anime-backend.onrender.com";
+const API_BASE_URL = "https://johnny-anime-backend.onrender.com";
 
 /* =========================
-REQUEST
+   REQUEST
 ========================= */
 
-async function request(
-endpoint,
-options = {}
-) {
-let response;
+async function request(endpoint, options = {}) {
+  let response;
 
-try {
-response = await fetch(
-"${API_BASE_URL}${endpoint}",
-{
-...options,
-
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {})
-    }
+  try {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+      }
+    });
+  } catch (error) {
+    throw new Error("Could not connect to the Johnny Anime backend.");
   }
-);
 
-} catch (error) {
-throw new Error(
-"Could not connect to the Johnny Anime backend."
-);
-}
+  let data = null;
 
-let data = null;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
 
-try {
-data = await response.json();
+  if (!response.ok) {
+    const serverMessage = data?.error || data?.message || data?.detail;
 
-} catch {
-data = null;
-}
+    throw new Error(
+      serverMessage || `Request failed with HTTP ${response.status} ${response.statusText}`
+    );
+  }
 
-if (!response.ok) {
-const serverMessage =
-data?.error ||
-data?.message ||
-data?.detail;
-
-throw new Error(
-  serverMessage ||
-  `Request failed with HTTP ${response.status} ${response.statusText}`
-);
-
-}
-
-return data;
+  return data;
 }
 
 /* =========================
-HEALTH
+   HEALTH
 ========================= */
 
 export async function checkHealth() {
-return request(
-"/api/health"
-);
+  return request("/api/health");
 }
 
 export async function checkDatabaseHealth() {
-return request(
-"/api/database/health"
-);
+  return request("/api/database/health");
 }
 
 /* =========================
-ANIME
+   ANIME
 ========================= */
 
-export async function searchAnime(
-query
-) {
-const cleanQuery =
-String(query || "").trim();
+export async function searchAnime(query) {
+  const cleanQuery = String(query || "").trim();
 
-if (!cleanQuery) {
-throw new Error(
-"Search query is required"
-);
+  if (!cleanQuery) {
+    throw new Error("Search query is required");
+  }
+
+  return request(`/api/anime/search?q=${encodeURIComponent(cleanQuery)}`);
 }
 
-return request(
-"/api/anime/search?q=${encodeURIComponent( cleanQuery )}"
-);
-}
-
-export async function getAnimeById(
-id
-) {
-return request(
-"/api/anime/${encodeURIComponent( id )}"
-);
+export async function getAnimeById(id) {
+  return request(`/api/anime/${encodeURIComponent(id)}`);
 }
 
 /* =========================
-LIBRARY
+   LIBRARY
 ========================= */
 
 export async function getLibrary() {
-return request(
-"/api/library"
-);
+  return request("/api/library");
 }
 
-export async function addToLibrary(
-anime
-) {
-return request(
-"/api/library",
-{
-method: "POST",
-
-  body: JSON.stringify(
-    anime
-  )
+export async function addToLibrary(anime) {
+  return request("/api/library", {
+    method: "POST",
+    body: JSON.stringify(anime)
+  });
 }
 
-);
+export async function getLibraryItem(id) {
+  return request(`/api/library/${encodeURIComponent(id)}`);
 }
 
-export async function getLibraryItem(
-id
-) {
-return request(
-"/api/library/${encodeURIComponent( id )}"
-);
-}
-
-export async function removeFromLibrary(
-id
-) {
-return request(
-"/api/library/${encodeURIComponent( id )}",
-{
-method: "DELETE"
-}
-);
+export async function removeFromLibrary(id) {
+  return request(`/api/library/${encodeURIComponent(id)}`, {
+    method: "DELETE"
+  });
 }
 
 /* =========================
-SEASONS
+   SEASONS
 ========================= */
 
-export async function getSeasons(
-animeId
-) {
-return request(
-"/api/anime/${encodeURIComponent( animeId )}/seasons"
-);
+export async function getSeasons(animeId) {
+  return request(`/api/anime/${encodeURIComponent(animeId)}/seasons`);
 }
 
-export async function createSeason(
-animeId,
-season
-) {
-return request(
-"/api/anime/${encodeURIComponent( animeId )}/seasons",
-{
-method: "POST",
-
-  body: JSON.stringify(
-    season
-  )
-}
-
-);
+export async function createSeason(animeId, season) {
+  return request(`/api/anime/${encodeURIComponent(animeId)}/seasons`, {
+    method: "POST",
+    body: JSON.stringify(season)
+  });
 }
 
 /* =========================
-EPISODE SYNC
+   EPISODE SYNC
 ========================= */
 
-export async function syncAnimeEpisodes(
-anilistId
-) {
-return request(
-"/api/episode-sync/anilist/${encodeURIComponent( anilistId )}",
-{
-method: "POST"
-}
-);
+export async function syncAnimeEpisodes(anilistId) {
+  return request(`/api/episode-sync/anilist/${encodeURIComponent(anilistId)}`, {
+    method: "POST"
+  });
 }
 
 /* =========================
-EPISODES
+   EPISODES
 ========================= */
 
-export async function getEpisodes(
-seasonId
-) {
-return request(
-"/api/season/${encodeURIComponent( seasonId )}/episodes"
-);
+export async function getEpisodes(seasonId) {
+  return request(`/api/season/${encodeURIComponent(seasonId)}/episodes`);
 }
 
-export async function createEpisode(
-seasonId,
-episode
-) {
-return request(
-"/api/season/${encodeURIComponent( seasonId )}/episodes",
-{
-method: "POST",
-
-  body: JSON.stringify(
-    episode
-  )
+export async function createEpisode(seasonId, episode) {
+  return request(`/api/season/${encodeURIComponent(seasonId)}/episodes`, {
+    method: "POST",
+    body: JSON.stringify(episode)
+  });
 }
 
-);
-}
-
-export async function getEpisode(
-episodeId
-) {
-return request(
-"/api/episode/${encodeURIComponent( episodeId )}"
-);
+export async function getEpisode(episodeId) {
+  return request(`/api/episode/${encodeURIComponent(episodeId)}`);
 }
 
 /* =========================
-VIDEO SOURCES
+   EPISODE NAVIGATION
 ========================= */
 
-export async function getVideoSources(
-episodeId
-) {
-return request(
-"/api/episode/${encodeURIComponent( episodeId )}/video-sources"
-);
+export async function getEpisodeNavigation(episodeId) {
+  return request(`/api/episode-navigation/${encodeURIComponent(episodeId)}`);
 }
 
 /* =========================
-WATCH PROGRESS
+   VIDEO SOURCES
 ========================= */
 
-export async function getWatchProgress(
-episodeId
-) {
-return request(
-"/api/watch-progress/${encodeURIComponent( episodeId )}"
-);
-}
-
-export async function saveWatchProgress(
-episodeId,
-progress
-) {
-return request(
-"/api/watch-progress/${encodeURIComponent( episodeId )}",
-{
-method: "POST",
-
-  body: JSON.stringify(
-    progress
-  )
-}
-
-);
+export async function getVideoSources(episodeId) {
+  return request(`/api/episode/${encodeURIComponent(episodeId)}/video-sources`);
 }
 
 /* =========================
-PLAYER
+   WATCH PROGRESS
 ========================= */
 
-export async function getPlayerData(
-episodeId
-) {
-return request(
-"/api/player/${encodeURIComponent( episodeId )}"
-);
+export async function getWatchProgress(episodeId) {
+  return request(`/api/watch-progress/${encodeURIComponent(episodeId)}`);
+}
+
+export async function saveWatchProgress(episodeId, progress) {
+  return request(`/api/watch-progress/${encodeURIComponent(episodeId)}`, {
+    method: "POST",
+    body: JSON.stringify(progress)
+  });
 }
 
 /* =========================
-CONTINUE WATCHING
+   PLAYER
+========================= */
+
+export async function getPlayerData(episodeId) {
+  return request(`/api/player/${encodeURIComponent(episodeId)}`);
+}
+
+/* =========================
+   CONTINUE WATCHING
 ========================= */
 
 export async function getContinueWatching() {
-return request(
-"/api/continue-watching"
-);
+  return request("/api/continue-watching");
 }
 
 /* =========================
-WATCH HISTORY
+   WATCH HISTORY
 ========================= */
 
 export async function getWatchHistory() {
-return request(
-"/api/watch-history"
-);
+  return request("/api/watch-history");
 }
 
 /* =========================
-RESUME
+   RESUME
 ========================= */
 
-export async function getResume(
-episodeId
-) {
-return request(
-"/api/resume/${encodeURIComponent( episodeId )}"
-);
+export async function getResume(episodeId) {
+  return request(`/api/resume/${encodeURIComponent(episodeId)}`);
 }
 
 /* =========================
-FAVORITES
+   FAVORITES
 ========================= */
 
 export async function getFavorites() {
-return request(
-"/api/favorites"
-);
+  return request("/api/favorites");
 }
 
-export async function addFavorite(
-animeId
-) {
-return request(
-"/api/favorites",
-{
-method: "POST",
-
-  body: JSON.stringify({
-    animeId
-  })
+export async function addFavorite(animeId) {
+  return request("/api/favorites", {
+    method: "POST",
+    body: JSON.stringify({ animeId })
+  });
 }
 
-);
-}
-
-export async function removeFavorite(
-animeId
-) {
-return request(
-"/api/favorites/${encodeURIComponent( animeId )}",
-{
-method: "DELETE"
-}
-);
+export async function removeFavorite(animeId) {
+  return request(`/api/favorites/${encodeURIComponent(animeId)}`, {
+    method: "DELETE"
+  });
 }
 
 /* =========================
-DASHBOARD
+   DASHBOARD
 ========================= */
 
 export async function getDashboard() {
-return request(
-"/api/dashboard"
-);
+  return request("/api/dashboard");
 }
 
 /* =========================
-DOWNLOADS
+   DOWNLOADS
 ========================= */
 
 export async function getDownloads() {
-return request(
-"/api/downloads"
-);
+  return request("/api/downloads");
 }
 
-export async function createDownload(
-download
-) {
-return request(
-"/api/downloads",
-{
-method: "POST",
-
-  body: JSON.stringify(
-    download
-  )
-}
-
-);
+export async function createDownload(download) {
+  return request("/api/downloads", {
+    method: "POST",
+    body: JSON.stringify(download)
+  });
 }
 
 /* =========================
-SETTINGS
+   SETTINGS
 ========================= */
 
 export async function getSettings() {
-return request(
-"/api/settings"
-);
+  return request("/api/settings");
 }
 
-export async function updateSettings(
-settings
-) {
-return request(
-"/api/settings",
-{
-method: "POST",
-
-  body: JSON.stringify(
-    settings
-  )
+export async function updateSettings(settings) {
+  return request("/api/settings", {
+    method: "POST",
+    body: JSON.stringify(settings)
+  });
 }
-
-);}
