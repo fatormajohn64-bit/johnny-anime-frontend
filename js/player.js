@@ -2,7 +2,8 @@ import {
   getEpisode,
   getVideoSources,
   getWatchProgress,
-  saveWatchProgress
+  saveWatchProgress,
+  getEpisodeNavigation
 } from "./api.js";
 
 
@@ -70,7 +71,7 @@ const nextButton =
    STATE
 ========================= */
 
-const episodeId =
+let currentEpisodeId =
   sessionStorage.getItem(
     "selectedEpisodeId"
   );
@@ -78,6 +79,8 @@ const episodeId =
 let currentEpisode = null;
 let currentProgress = 0;
 let saveTimer = null;
+let previousEpisodeId = null;
+let nextEpisodeId = null;
 
 
 /* =========================
@@ -97,13 +100,13 @@ backButton?.addEventListener(
    START
 ========================= */
 
-if (!episodeId) {
+if (!currentEpisodeId) {
   showPlaceholder(
     "No episode selected."
   );
 } else {
   loadPlayer(
-    episodeId
+    currentEpisodeId
   );
 }
 
@@ -117,6 +120,8 @@ async function loadPlayer(
 ) {
   try {
     showLoading();
+
+    currentEpisodeId = id;
 
     const episodeResponse =
       await getEpisode(
@@ -147,6 +152,10 @@ async function loadPlayer(
 
 
     await loadSources(
+      id
+    );
+
+    await loadNavigation(
       id
     );
 
@@ -275,7 +284,7 @@ async function loadProgress(
 
 async function saveCurrentProgress() {
   if (
-    !episodeId ||
+    !currentEpisodeId ||
     !video ||
     !Number.isFinite(
       video.currentTime
@@ -287,7 +296,7 @@ async function saveCurrentProgress() {
 
   try {
     await saveWatchProgress(
-      episodeId,
+      currentEpisodeId,
       {
         position:
           video.currentTime,
@@ -491,6 +500,118 @@ function updateProgressUI(
       `${percent}%`;
   }
 }
+
+
+/* =========================
+   EPISODE NAVIGATION
+========================= */
+
+async function loadNavigation(
+  id
+) {
+  previousEpisodeId = null;
+  nextEpisodeId = null;
+
+  updateNavigationButtons();
+
+  try {
+    const response =
+      await getEpisodeNavigation(
+        id
+      );
+
+    const data =
+      response?.result ||
+      response?.data ||
+      response ||
+      {};
+
+    previousEpisodeId =
+      data.previousEpisodeId ||
+      data.previous_episode_id ||
+      data.previousEpisode?.id ||
+      data.previous?.id ||
+      null;
+
+    nextEpisodeId =
+      data.nextEpisodeId ||
+      data.next_episode_id ||
+      data.nextEpisode?.id ||
+      data.next?.id ||
+      null;
+
+  } catch (error) {
+    console.warn(
+      "Episode navigation unavailable:",
+      error
+    );
+  }
+
+  updateNavigationButtons();
+}
+
+
+function updateNavigationButtons() {
+  if (
+    previousButton
+  ) {
+    previousButton.disabled =
+      !previousEpisodeId;
+  }
+
+  if (
+    nextButton
+  ) {
+    nextButton.disabled =
+      !nextEpisodeId;
+  }
+}
+
+
+async function goToEpisode(
+  id
+) {
+  if (!id) {
+    return;
+  }
+
+  stopProgressSaving();
+
+  await saveCurrentProgress();
+
+  video.pause();
+  video.removeAttribute(
+    "src"
+  );
+  video.load();
+
+  sessionStorage.setItem(
+    "selectedEpisodeId",
+    String(id)
+  );
+
+  await loadPlayer(id);
+}
+
+
+previousButton?.addEventListener(
+  "click",
+  () => {
+    goToEpisode(
+      previousEpisodeId
+    );
+  }
+);
+
+
+nextButton?.addEventListener(
+  "click",
+  () => {
+    goToEpisode(
+      nextEpisodeId
+    );
+  }
+);
 
 
 /* =========================
@@ -962,4 +1083,4 @@ function escapeHtml(
       "'",
       "&#039;"
     );
-  }
+}
