@@ -3,6 +3,10 @@ import {
 } from "./api.js?v=3";
 
 
+/* =========================
+   ELEMENTS
+========================= */
+
 const input =
   document.getElementById(
     "anime-search-input"
@@ -28,51 +32,13 @@ const backButton =
     "search-back"
   );
 
-const searchForm =
-  document.getElementById(
-    "anime-search-form"
-  );
 
-const submitButton =
-  document.getElementById(
-    "submit-search"
-  );
-
+/* =========================
+   STATE
+========================= */
 
 let searchTimer = null;
 let lastQuery = "";
-
-
-/* =========================
-   SEARCH FORM
-========================= */
-
-searchForm?.addEventListener(
-  "submit",
-  (event) => {
-    event.preventDefault();
-
-    clearTimeout(
-      searchTimer
-    );
-
-    const value =
-      input?.value.trim();
-
-    if (!value) {
-      status.textContent =
-        "Enter an anime title to search.";
-
-      results.innerHTML = "";
-
-      return;
-    }
-
-    performSearch(
-      value
-    );
-  }
-);
 
 
 /* =========================
@@ -82,24 +48,19 @@ searchForm?.addEventListener(
 input?.addEventListener(
   "input",
   () => {
-
     const value =
       input.value.trim();
-
 
     clearButton?.classList.toggle(
       "visible",
       value.length > 0
     );
 
-
     clearTimeout(
       searchTimer
     );
 
-
     if (!value) {
-
       results.innerHTML = "";
 
       status.textContent =
@@ -110,28 +71,21 @@ input?.addEventListener(
       return;
     }
 
-
-    /*
-      Wait until the user stops
-      typing before searching.
-    */
+    if (
+      value === lastQuery
+    ) {
+      return;
+    }
 
     searchTimer =
       setTimeout(
         () => {
-
-          if (
-            value !== lastQuery
-          ) {
-            performSearch(
-              value
-            );
-          }
-
+          performSearch(
+            value
+          );
         },
-        600
+        500
       );
-
   }
 );
 
@@ -143,11 +97,6 @@ input?.addEventListener(
 clearButton?.addEventListener(
   "click",
   () => {
-
-    clearTimeout(
-      searchTimer
-    );
-
     input.value = "";
 
     clearButton.classList.remove(
@@ -162,7 +111,6 @@ clearButton?.addEventListener(
     lastQuery = "";
 
     input.focus();
-
   }
 );
 
@@ -186,81 +134,45 @@ backButton?.addEventListener(
 async function performSearch(
   query
 ) {
-
   const cleanQuery =
     query.trim();
-
 
   if (!cleanQuery) {
     return;
   }
 
-
   lastQuery =
     cleanQuery;
-
 
   status.textContent =
     "Searching...";
 
-
   results.innerHTML = `
     <div class="search-loading">
-
-      <div class="loading-spinner"></div>
-
-      <p>
-        Searching for
-        "${escapeHtml(
-          cleanQuery
-        )}"
-      </p>
-
+      Searching anime...
     </div>
   `;
 
-
-  if (submitButton) {
-    submitButton.disabled =
-      true;
-
-    submitButton.textContent =
-      "Searching...";
-  }
-
-
   try {
-
     const response =
       await searchAnime(
         cleanQuery
       );
-
-
-    console.log(
-      "Anime search response:",
-      response
-    );
-
 
     const animeList =
       extractAnimeResults(
         response
       );
 
-
     renderResults(
       animeList
     );
 
-
   } catch (error) {
-
     console.error(
       "Anime search failed:",
       error
     );
-
 
     results.innerHTML = `
       <div class="search-empty">
@@ -275,15 +187,15 @@ async function performSearch(
 
         <p>
           ${escapeHtml(
-            error?.message ||
+            error.message ||
             "Unable to search right now."
           )}
         </p>
 
         <button
+          id="retry-search"
           class="retry-search"
           type="button"
-          id="retry-search"
         >
           Try Again
         </button>
@@ -291,43 +203,39 @@ async function performSearch(
       </div>
     `;
 
-
     status.textContent =
       "Unable to complete search.";
 
-
-    const retryButton =
-      document.getElementById(
-        "retry-search"
-      );
+    attachRetryButton();
+  }
+}
 
 
-    retryButton?.addEventListener(
-      "click",
-      () => {
+/* =========================
+   RETRY
+========================= */
 
-        performSearch(
-          cleanQuery
-        );
-
-      }
+function attachRetryButton() {
+  const retryButton =
+    document.getElementById(
+      "retry-search"
     );
 
+  retryButton?.addEventListener(
+    "click",
+    () => {
+      const query =
+        input?.value.trim();
 
-  } finally {
-
-    if (submitButton) {
-
-      submitButton.disabled =
-        false;
-
-      submitButton.textContent =
-        "Search";
-
+      if (query) {
+        performSearch(
+          query
+        );
+      } else {
+        input?.focus();
+      }
     }
-
-  }
-
+  );
 }
 
 
@@ -338,7 +246,6 @@ async function performSearch(
 function extractAnimeResults(
   response
 ) {
-
   if (
     Array.isArray(
       response
@@ -346,7 +253,6 @@ function extractAnimeResults(
   ) {
     return response;
   }
-
 
   if (
     Array.isArray(
@@ -356,7 +262,6 @@ function extractAnimeResults(
     return response.result;
   }
 
-
   if (
     Array.isArray(
       response?.data
@@ -364,7 +269,6 @@ function extractAnimeResults(
   ) {
     return response.data;
   }
-
 
   if (
     Array.isArray(
@@ -374,7 +278,6 @@ function extractAnimeResults(
     return response.data.Page.media;
   }
 
-
   if (
     Array.isArray(
       response?.Page?.media
@@ -383,18 +286,7 @@ function extractAnimeResults(
     return response.Page.media;
   }
 
-
-  if (
-    Array.isArray(
-      response?.media
-    )
-  ) {
-    return response.media;
-  }
-
-
   return [];
-
 }
 
 
@@ -405,14 +297,12 @@ function extractAnimeResults(
 function renderResults(
   animeList
 ) {
-
   if (
     !Array.isArray(
       animeList
     ) ||
     animeList.length === 0
   ) {
-
     results.innerHTML = `
       <div class="search-empty">
 
@@ -431,13 +321,11 @@ function renderResults(
       </div>
     `;
 
-
     status.textContent =
       "No results.";
 
     return;
   }
-
 
   status.textContent =
     `${animeList.length} result${
@@ -446,20 +334,20 @@ function renderResults(
         : "s"
     } found`;
 
-
   results.innerHTML =
     animeList
       .map(
-        (anime) =>
-          createAnimeCard(
+        (
+          anime
+        ) => {
+          return createAnimeCard(
             anime
-          )
+          );
+        }
       )
       .join("");
 
-
   attachCardEvents();
-
 }
 
 
@@ -470,12 +358,10 @@ function renderResults(
 function createAnimeCard(
   anime
 ) {
-
   const id =
     anime?.id ||
     anime?.anilist_id ||
     "";
-
 
   const title =
     anime?.title?.english ||
@@ -486,57 +372,53 @@ function createAnimeCard(
     anime?.title_native ||
     "Unknown Anime";
 
-
   const cover =
-    anime?.coverImage?.extraLarge ||
     anime?.coverImage?.large ||
     anime?.coverImage?.medium ||
     anime?.cover_image ||
     "";
 
-
   const format =
     anime?.format ||
     "UNKNOWN";
-
 
   const episodes =
     anime?.episodes ??
     anime?.total_episodes ??
     "—";
 
-
   const year =
     anime?.seasonYear ||
     anime?.season_year ||
     "";
 
+  let posterMarkup = "";
 
-  const posterMarkup =
-    cover
-      ? `
-        <img
-          src="${escapeAttribute(
-            cover
-          )}"
-          alt="${escapeAttribute(
+  if (cover) {
+    posterMarkup = `
+      <img
+        src="${escapeAttribute(
+          cover
+        )}"
+        alt="${escapeAttribute(
+          title
+        )}"
+        loading="lazy"
+      >
+    `;
+  } else {
+    posterMarkup = `
+      <div
+        class="anime-cover-placeholder"
+      >
+        <span>
+          ${escapeHtml(
             title
-          )}"
-          loading="lazy"
-        >
-      `
-      : `
-        <div
-          class="anime-cover-placeholder"
-        >
-          <span>
-            ${escapeHtml(
-              title
-            )}
-          </span>
-        </div>
-      `;
-
+          )}
+        </span>
+      </div>
+    `;
+  }
 
   return `
     <article
@@ -561,23 +443,23 @@ function createAnimeCard(
 
       <div class="anime-card-info">
 
-        <h3 class="anime-card-title">
+        <h3
+          class="anime-card-title"
+        >
           ${escapeHtml(
             title
           )}
         </h3>
 
-
-        <p class="anime-card-meta">
-
+        <p
+          class="anime-card-meta"
+        >
           ${escapeHtml(
             String(
               episodes
             )
           )}
-
           episodes
-
           ${
             year
               ? ` • ${escapeHtml(
@@ -585,14 +467,12 @@ function createAnimeCard(
                 )}`
               : ""
           }
-
         </p>
 
       </div>
 
     </article>
   `;
-
 }
 
 
@@ -601,43 +481,36 @@ function createAnimeCard(
 ========================= */
 
 function attachCardEvents() {
-
   document
     .querySelectorAll(
       ".anime-card"
     )
     .forEach(
-      (card) => {
-
+      (
+        card
+      ) => {
         card.addEventListener(
           "click",
           () => {
-
             const id =
               card.dataset
                 .anilistId;
 
-
             if (!id) {
               return;
             }
-
 
             sessionStorage.setItem(
               "selectedAnimeId",
               id
             );
 
-
             window.location.hash =
               "anime";
-
           }
         );
-
       }
     );
-
 }
 
 
@@ -646,10 +519,8 @@ function attachCardEvents() {
 ========================= */
 
 function navigateHome() {
-
   window.location.hash =
     "home";
-
 }
 
 
@@ -660,7 +531,6 @@ function navigateHome() {
 function escapeHtml(
   value
 ) {
-
   return String(value)
     .replaceAll(
       "&",
@@ -682,16 +552,17 @@ function escapeHtml(
       "'",
       "&#039;"
     );
-
 }
 
+
+/* =========================
+   ESCAPE ATTRIBUTE
+========================= */
 
 function escapeAttribute(
   value
 ) {
-
   return escapeHtml(
     value
   );
-
 }
