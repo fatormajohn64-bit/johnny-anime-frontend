@@ -1,9 +1,11 @@
 <section class="search-page">
 
   <div class="search-header">
+
     <button
       id="search-back"
       class="back-button"
+      type="button"
       aria-label="Go back"
     >
       ←
@@ -16,11 +18,18 @@
 
       <h1>Search Anime</h1>
     </div>
+
   </div>
 
-  <div class="search-box">
+  <form
+    id="anime-search-form"
+    class="search-box"
+  >
 
-    <span class="search-icon">
+    <span
+      class="search-icon"
+      aria-hidden="true"
+    >
       🔍
     </span>
 
@@ -29,17 +38,27 @@
       type="search"
       placeholder="Search anime..."
       autocomplete="off"
+      enterkeyhint="search"
     >
 
     <button
       id="clear-search"
       class="clear-search"
+      type="button"
       aria-label="Clear search"
     >
       ×
     </button>
 
-  </div>
+    <button
+      id="submit-search"
+      class="submit-search"
+      type="submit"
+    >
+      Search
+    </button>
+
+  </form>
 
   <div
     id="search-status"
