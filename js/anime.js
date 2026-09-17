@@ -16,15 +16,19 @@ const formatElement = document.getElementById("anime-format");
 const metaElement = document.getElementById("anime-meta");
 const descriptionElement = document.getElementById("anime-description");
 const posterElement = document.getElementById("anime-poster");
+const bannerElement = document.getElementById("anime-banner");
+const altTitlesElement = document.getElementById("anime-alt-titles");
 const seasonList = document.getElementById("season-list");
 const episodeList = document.getElementById("episode-list");
 const backButton = document.getElementById("anime-back");
 const libraryButton = document.getElementById("add-library");
 const favoriteButton = document.getElementById("favorite-anime");
+const watchButton = document.getElementById("watch-anime");
 
 const animeId = sessionStorage.getItem("selectedAnimeId");
 
 let currentAnime = null;
+let firstEpisode = null;
 
 /* =========================
    BACK
@@ -32,6 +36,22 @@ let currentAnime = null;
 
 backButton?.addEventListener("click", () => {
   window.location.hash = "search";
+});
+
+/* =========================
+   WATCH
+========================= */
+
+watchButton?.addEventListener("click", () => {
+  if (firstEpisode) {
+    openEpisode(firstEpisode);
+    return;
+  }
+
+  episodeList?.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
 });
 
 /* =========================
@@ -147,6 +167,8 @@ function renderAnime(anime) {
 
   const status = anime?.status || "Unknown status";
 
+  const year = anime?.seasonYear || "";
+
   const description = cleanDescription(
     anime?.description || "No description available."
   );
@@ -158,16 +180,47 @@ function renderAnime(anime) {
     anime?.cover_image ||
     "";
 
+  const banner = anime?.bannerImage || "";
+
   titleElement.textContent = title;
   formatElement.textContent = format;
-  metaElement.textContent = `${episodes} episodes • ${duration} • ${status}`;
+
+  metaElement.textContent = [`${episodes} episodes`, duration, status, year]
+    .filter(Boolean)
+    .join(" • ");
+
   descriptionElement.textContent = description;
+
+  renderAltTitles(anime, title);
 
   if (poster) {
     posterElement.innerHTML = `<img src="${escapeAttribute(poster)}" alt="${escapeAttribute(title)}">`;
   } else {
     posterElement.innerHTML = `<div class="anime-poster-placeholder">${escapeHtml(title)}</div>`;
   }
+
+  if (bannerElement) {
+    bannerElement.style.backgroundImage = banner
+      ? `url("${banner.replaceAll('"', "")}")`
+      : "none";
+  }
+}
+
+/* =========================
+   ALTERNATE TITLES
+========================= */
+
+function renderAltTitles(anime, mainTitle) {
+  if (!altTitlesElement) {
+    return;
+  }
+
+  const alternates = [
+    anime?.title?.romaji,
+    anime?.title?.native
+  ].filter((value) => value && value !== mainTitle);
+
+  altTitlesElement.textContent = alternates.join(" • ");
 }
 
 /* =========================
@@ -321,6 +374,8 @@ async function loadSeasonEpisodes(seasonId) {
 function renderBackendEpisodes(episodes) {
   episodeList.innerHTML = "";
 
+  firstEpisode = episodes[0] || null;
+
   episodes.forEach((episode) => {
     const card = document.createElement("article");
 
@@ -366,6 +421,8 @@ function renderBackendEpisodes(episodes) {
 ========================= */
 
 function renderFallbackEpisodes(anime) {
+  firstEpisode = null;
+
   const totalEpisodes = Number(anime?.episodes || 0);
 
   if (!totalEpisodes) {
