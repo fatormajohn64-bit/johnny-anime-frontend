@@ -1,6 +1,6 @@
 import {
   searchAnime
-} from "./api.js?v=2";
+} from "./api.js?v=3";
 
 
 const input =
