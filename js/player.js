@@ -1083,4 +1083,4 @@ function escapeHtml(
       "'",
       "&#039;"
     );
-}
+  }
