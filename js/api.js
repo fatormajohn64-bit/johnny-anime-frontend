@@ -1,6 +1,10 @@
 const API_BASE_URL =
 "https://johnny-anime-backend.onrender.com";
 
+/* =========================
+REQUEST
+========================= */
+
 async function request(
 endpoint,
 options = {}
@@ -30,6 +34,7 @@ let data = null;
 
 try {
 data = await response.json();
+
 } catch {
 data = null;
 }
