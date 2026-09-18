@@ -1,0 +1,198 @@
+.library-page {
+  min-height: calc(100vh - 150px);
+  padding-bottom: 40px;
+}
+
+
+/* =========================
+   TOP BAR
+========================= */
+
+.library-topbar {
+  position: sticky;
+  top: 79px;
+  z-index: 50;
+
+  padding: 16px 20px;
+
+  background: rgba(9, 9, 9, 0.9);
+
+  border-bottom: 1px solid var(--border);
+
+  backdrop-filter: blur(18px);
+
+  color: #ffffff;
+
+  font-size: 18px;
+  font-weight: 900;
+
+  letter-spacing: -0.5px;
+}
+
+
+/* =========================
+   CONTENT
+========================= */
+
+.library-content {
+  padding: 20px;
+
+  max-width: 1100px;
+
+  margin: 0 auto;
+}
+
+.library-status {
+  margin-bottom: 15px;
+
+  color: #888888;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+
+/* =========================
+   LIBRARY LIST
+========================= */
+
+.library-list {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+}
+
+.library-card {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 10px;
+
+  background:
+    linear-gradient(145deg, #151515, #101010);
+
+  border: 1px solid var(--border);
+
+  border-radius: 14px;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.library-card:hover {
+  border-color: rgba(255, 106, 0, 0.3);
+}
+
+.library-card:active {
+  transform: scale(0.98);
+}
+
+.library-cover {
+  width: 56px;
+
+  aspect-ratio: 2 / 3;
+
+  flex-shrink: 0;
+
+  overflow: hidden;
+
+  border-radius: 9px;
+
+  background: #1b1b1b;
+}
+
+.library-cover img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+}
+
+.library-info {
+  flex: 1;
+
+  min-width: 0;
+}
+
+.library-title {
+  margin-bottom: 5px;
+
+  overflow: hidden;
+
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 800;
+
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.library-meta {
+  color: #888888;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.library-downloads {
+  color: var(--accent);
+
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.library-remove {
+  width: 34px;
+  height: 34px;
+
+  flex-shrink: 0;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 9px;
+
+  background: var(--surface-light);
+  border: 1px solid var(--border);
+
+  color: #777777;
+
+  font-size: 14px;
+}
+
+.library-remove:hover {
+  color: #ff4d4d;
+
+  border-color: rgba(255, 77, 77, 0.3);
+}
+
+
+/* =========================
+   EMPTY
+========================= */
+
+.library-empty {
+  padding: 40px 20px;
+
+  text-align: center;
+
+  color: #777777;
+
+  font-size: 12px;
+
+  line-height: 1.6;
+
+  background: var(--surface);
+  border: 1px solid var(--border);
+
+  border-radius: 14px;
+}
