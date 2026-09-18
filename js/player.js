@@ -6,6 +6,8 @@ import {
   getEpisodeNavigation
 } from "./api.js";
 
+import { getSettings } from "./storage.js";
+
 
 /* =========================
    ELEMENTS
@@ -348,7 +350,8 @@ video?.addEventListener(
     if (
       resumeTime > 0 &&
       resumeTime <
-        video.duration
+        video.duration &&
+      getSettings().autoResume
     ) {
       video.currentTime =
         resumeTime;
@@ -400,6 +403,15 @@ video?.addEventListener(
     updateProgressUI(
       1
     );
+
+    if (
+      getSettings().autoplayNext &&
+      nextEpisodeId
+    ) {
+      goToEpisode(
+        nextEpisodeId
+      );
+    }
   }
 );
 
