@@ -1,0 +1,158 @@
+.settings-page {
+  min-height: calc(100vh - 150px);
+  padding-bottom: 40px;
+}
+
+
+/* =========================
+   TOP BAR
+========================= */
+
+.settings-topbar {
+  position: sticky;
+  top: 79px;
+  z-index: 50;
+
+  padding: 16px 20px;
+
+  background: rgba(9, 9, 9, 0.9);
+
+  border-bottom: 1px solid var(--border);
+
+  backdrop-filter: blur(18px);
+
+  color: #ffffff;
+
+  font-size: 18px;
+  font-weight: 900;
+
+  letter-spacing: -0.5px;
+}
+
+
+/* =========================
+   CONTENT
+========================= */
+
+.settings-content {
+  padding: 20px;
+
+  max-width: 700px;
+
+  margin: 0 auto;
+}
+
+.settings-section {
+  margin-bottom: 30px;
+}
+
+.settings-section h2 {
+  margin-bottom: 12px;
+
+  color: #888888;
+
+  font-size: 11px;
+  font-weight: 900;
+
+  letter-spacing: 1.5px;
+}
+
+
+/* =========================
+   TOGGLES
+========================= */
+
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 14px;
+
+  padding: 14px;
+
+  margin-bottom: 8px;
+
+  background:
+    linear-gradient(145deg, #151515, #101010);
+
+  border: 1px solid var(--border);
+
+  border-radius: 13px;
+}
+
+.settings-toggle-title {
+  margin-bottom: 3px;
+
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.settings-toggle-description {
+  color: #888888;
+
+  font-size: 11px;
+
+  line-height: 1.4;
+}
+
+.settings-toggle input[type="checkbox"] {
+  width: 40px;
+  height: 24px;
+
+  flex-shrink: 0;
+
+  accent-color: var(--accent);
+}
+
+
+/* =========================
+   DANGER BUTTON
+========================= */
+
+.settings-danger-button {
+  width: 100%;
+
+  min-height: 46px;
+
+  padding: 12px;
+
+  border-radius: 12px;
+
+  background: rgba(255, 60, 60, 0.08);
+  border: 1px solid rgba(255, 60, 60, 0.25);
+
+  color: #ff6b6b;
+
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.settings-danger-button:active {
+  transform: scale(0.98);
+}
+
+.settings-hint {
+  margin-top: 8px;
+
+  color: #666666;
+
+  font-size: 10.5px;
+
+  line-height: 1.5;
+}
+
+
+/* =========================
+   ABOUT
+========================= */
+
+.settings-about {
+  color: #999999;
+
+  font-size: 12px;
+
+  line-height: 1.7;
+}
