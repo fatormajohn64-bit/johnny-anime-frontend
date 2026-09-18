@@ -19,6 +19,18 @@ const pages = {
     html: "./pages/player.html",
     css: "./css/player.css",
     js: "./js/player.js"
+  },
+
+  library: {
+    html: "./pages/library.html",
+    css: "./css/library.css",
+    js: "./js/library.js"
+  },
+
+  settings: {
+    html: "./pages/settings.html",
+    css: "./css/settings.css",
+    js: "./js/settings.js"
   }
 };
 
