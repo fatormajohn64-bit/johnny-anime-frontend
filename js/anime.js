@@ -128,7 +128,7 @@ async function loadAnime(id) {
   try {
     const response = await getAnimeById(id);
 
-    const anime = response?.result || response?.data || response;
+    const anime = extractAnime(response);
 
     if (!anime) {
       throw new Error("Anime information was not found.");
@@ -144,6 +144,28 @@ async function loadAnime(id) {
 
     showError(error.message || "Unable to load anime.");
   }
+}
+
+/* =========================
+   ANIME EXTRACTION
+========================= */
+
+function extractAnime(response) {
+  const candidates = [
+    response?.anime,
+    response?.result,
+    response?.data,
+    response
+  ];
+
+  return (
+    candidates.find(
+      (candidate) =>
+        candidate &&
+        typeof candidate === "object" &&
+        (candidate.title || candidate.coverImage || candidate.id)
+    ) || null
+  );
 }
 
 /* =========================
