@@ -821,7 +821,7 @@ async function downloadEpisode(episode) {
 function triggerBrowserDownload(url, episode) {
   const link = document.createElement("a");
 
-  link.href = url;
+  link.href = withForcedDownload(url);
   link.download = `${animeTitle(currentAnime)} - Episode ${episode.number}`.trim();
   link.target = "_blank";
   link.rel = "noopener";
@@ -829,6 +829,28 @@ function triggerBrowserDownload(url, episode) {
   document.body.appendChild(link);
   link.click();
   link.remove();
+}
+
+// Supabase Storage URLs support a "?download" query param that
+// makes the response send Content-Disposition: attachment, so
+// the browser actually saves the file instead of just opening
+// it (which is otherwise the default for cross-origin links).
+function withForcedDownload(url) {
+  if (!url.includes("/storage/v1/object/public/")) {
+    return url;
+  }
+
+  try {
+    const parsed = new URL(url);
+
+    if (!parsed.searchParams.has("download")) {
+      parsed.searchParams.set("download", "");
+    }
+
+    return parsed.toString();
+  } catch {
+    return url;
+  }
 }
 
 function extractSourceUrl(response) {
