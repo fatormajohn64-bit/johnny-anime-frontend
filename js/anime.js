@@ -20,6 +20,11 @@ import {
   upsertDownload as upsertLocalDownload
 } from "./storage.js";
 
+import {
+  saveEpisode as saveOfflineEpisode,
+  listEpisodes as listOfflineEpisodes
+} from "./offline-store.js";
+
 /* =========================
    ELEMENTS
 ========================= */
@@ -503,8 +508,12 @@ async function renderBackendEpisodes(episodes) {
 
   firstEpisode = episodes[0] || null;
 
-  // Best-effort: pull real download status from the backend.
-  // Falls back to the local mirror if this fails.
+  // The real truth for "downloaded" is: is it actually saved
+  // offline in this browser? Backend/local records are just
+  // secondary signals in case that check fails.
+  const offlineList = await listOfflineEpisodes().catch(() => []);
+  const offlineIds = new Set(offlineList.map((item) => String(item.episodeId)));
+
   const backendDownloads = await fetchAllDownloadsForEpisodes(episodes).catch(() => []);
 
   const localDownloads = getLocalDownloads();
@@ -521,6 +530,7 @@ async function renderBackendEpisodes(episodes) {
     const title = episode.title || `Episode ${number}`;
 
     const hasDownload =
+      offlineIds.has(String(episodeId)) ||
       backendDownloads.some((d) => String(d.episode_id) === String(episodeId)) ||
       localDownloads.some(
         (d) => String(d.episodeId) === String(episodeId) && d.status === "downloaded"
@@ -769,15 +779,26 @@ async function downloadEpisode(episode) {
       throw new Error("No authorized source available.");
     }
 
-    triggerBrowserDownload(sourceUrl, episode);
+    const blob = await fetchWithProgress(sourceUrl, (percent) => {
+      setDownloadStatusText(`Downloading Episode ${episode.number}... ${percent}%`);
+    });
 
-    // Persist the download record on the backend so it survives
-    // a refresh (and shows up in the anime's downloaded state).
+    await saveOfflineEpisode(episodeId, blob, {
+      animeId: anilistId,
+      animeTitle: animeTitle(currentAnime),
+      episodeNumber: episode.number,
+      episodeTitle: episode.title
+    });
+
+    // Also record it on the backend so "downloaded" shows up
+    // even from other devices — this is metadata only, the
+    // actual playable file lives in this browser's storage.
     try {
       await createDownload({
         episodeId,
         storageKey: sourceUrl,
         fileName: `${animeTitle(currentAnime)} - Episode ${episode.number}`.trim(),
+        sizeBytes: blob.size,
         status: "ready"
       });
     } catch (backendError) {
@@ -818,39 +839,43 @@ async function downloadEpisode(episode) {
   }
 }
 
-function triggerBrowserDownload(url, episode) {
-  const link = document.createElement("a");
+// Streams the response body so we can report real byte-level
+// progress, then assembles the chunks into a single Blob that
+// gets stored in IndexedDB (offline-store.js).
+async function fetchWithProgress(url, onProgress) {
+  const response = await fetch(url);
 
-  link.href = withForcedDownload(url);
-  link.download = `${animeTitle(currentAnime)} - Episode ${episode.number}`.trim();
-  link.target = "_blank";
-  link.rel = "noopener";
-
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-}
-
-// Supabase Storage URLs support a "?download" query param that
-// makes the response send Content-Disposition: attachment, so
-// the browser actually saves the file instead of just opening
-// it (which is otherwise the default for cross-origin links).
-function withForcedDownload(url) {
-  if (!url.includes("/storage/v1/object/public/")) {
-    return url;
+  if (!response.ok) {
+    throw new Error(`Could not fetch video (HTTP ${response.status}).`);
   }
 
-  try {
-    const parsed = new URL(url);
+  if (!response.body) {
+    // Streaming isn't supported here — fall back to a plain blob.
+    return response.blob();
+  }
 
-    if (!parsed.searchParams.has("download")) {
-      parsed.searchParams.set("download", "");
+  const contentLength = Number(response.headers.get("content-length") || 0);
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let received = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+
+    if (done) {
+      break;
     }
 
-    return parsed.toString();
-  } catch {
-    return url;
+    chunks.push(value);
+    received += value.length;
+
+    if (contentLength > 0) {
+      onProgress(Math.min(100, Math.round((received / contentLength) * 100)));
+    }
   }
+
+  return new Blob(chunks);
 }
 
 function extractSourceUrl(response) {
