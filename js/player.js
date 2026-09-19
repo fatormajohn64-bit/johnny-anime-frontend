@@ -8,6 +8,8 @@ import {
 
 import { getSettings } from "./storage.js";
 
+import { getEpisodeBlob } from "./offline-store.js";
+
 
 /* =========================
    ELEMENTS
@@ -83,6 +85,7 @@ let currentProgress = 0;
 let saveTimer = null;
 let previousEpisodeId = null;
 let nextEpisodeId = null;
+let currentObjectUrl = null;
 
 
 /* =========================
@@ -621,6 +624,56 @@ nextButton?.addEventListener(
 async function loadSources(
   id
 ) {
+  // Revoke any previous blob URL before loading a new episode.
+  if (
+    currentObjectUrl
+  ) {
+    URL.revokeObjectURL(
+      currentObjectUrl
+    );
+
+    currentObjectUrl = null;
+  }
+
+
+  const offlineBlob =
+    await getEpisodeBlob(
+      id
+    ).catch(
+      () => null
+    );
+
+
+  if (
+    offlineBlob
+  ) {
+    currentObjectUrl =
+      URL.createObjectURL(
+        offlineBlob
+      );
+
+    video.src =
+      currentObjectUrl;
+
+    video.load();
+
+    placeholder?.classList.add(
+      "hidden"
+    );
+
+    sourceList.innerHTML = `
+      <div class="video-source active">
+        <div class="video-source-info">
+          <div class="video-source-name">Downloaded</div>
+          <div class="video-source-quality">Playing offline — no internet needed</div>
+        </div>
+      </div>
+    `;
+
+    return;
+  }
+
+
   sourceList.innerHTML = `
     <div class="player-loading">
       Loading video sources...
