@@ -134,6 +134,28 @@
   transform: scale(0.98);
 }
 
+.settings-neutral-button {
+  width: 100%;
+
+  min-height: 46px;
+
+  padding: 12px;
+
+  border-radius: 12px;
+
+  background: var(--surface-light);
+  border: 1px solid var(--border);
+
+  color: #cccccc;
+
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.settings-neutral-button:active {
+  transform: scale(0.98);
+}
+
 .settings-hint {
   margin-top: 8px;
 
