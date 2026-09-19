@@ -1,18 +1,23 @@
 import {
   getAnimeById,
+  getSyncedAnime,
+  syncAnime,
+  syncAnimeToLibrary,
   getSeasons,
   getEpisodes,
   syncAnimeEpisodes,
   getVideoSources,
-  addToLibrary as addToBackendLibrary,
-  addFavorite
+  getLibraryAnime,
+  addFavorite,
+  checkFavorite,
+  getEpisodeDownloads,
+  createDownload
 } from "./api.js";
 
 import {
-  isInLibrary as isInLocalLibrary,
   addToLibrary as addToLocalLibrary,
-  getDownloads,
-  upsertDownload
+  getDownloads as getLocalDownloads,
+  upsertDownload as upsertLocalDownload
 } from "./storage.js";
 
 /* =========================
@@ -37,7 +42,17 @@ const downloadSelectedButton = document.getElementById("download-selected");
 const downloadAllButton = document.getElementById("download-all");
 const downloadStatusElement = document.getElementById("download-status");
 
-const animeId = sessionStorage.getItem("selectedAnimeId");
+/* =========================
+   STATE
+========================= */
+
+// The AniList ID, passed in from search results.
+const anilistId = sessionStorage.getItem("selectedAnimeId");
+
+// The local database ID, resolved once the anime is synced.
+// Seasons, episodes, library, favorites, and downloads all
+// key off this — NOT the AniList ID.
+let localAnimeId = null;
 
 let currentAnime = null;
 let firstEpisode = null;
@@ -68,89 +83,13 @@ watchButton?.addEventListener("click", () => {
 });
 
 /* =========================
-   ADD TO LIBRARY
-========================= */
-
-libraryButton?.addEventListener("click", async () => {
-  if (!currentAnime || !animeId || libraryButton.disabled) {
-    return;
-  }
-
-  saveToLocalLibrary();
-
-  libraryButton.disabled = true;
-  libraryButton.textContent = "✓ In Library";
-
-  try {
-    await addToBackendLibrary({
-      animeId,
-      title: animeTitle(currentAnime),
-      coverImage: animeCover(currentAnime)
-    });
-  } catch (error) {
-    // Backend save failed, but the local library entry above
-    // already succeeded, so the button stays "In Library".
-    console.warn("Backend library save failed (kept local copy):", error);
-  }
-});
-
-function saveToLocalLibrary() {
-  if (!currentAnime || !animeId) {
-    return;
-  }
-
-  addToLocalLibrary({
-    animeId,
-    title: animeTitle(currentAnime),
-    coverImage: animeCover(currentAnime),
-    format: currentAnime?.format || "ANIME",
-    episodes: currentAnime?.episodes ?? null
-  });
-}
-
-function animeTitle(anime) {
-  return (
-    anime?.title?.english ||
-    anime?.title?.romaji ||
-    anime?.title?.native ||
-    "Unknown Anime"
-  );
-}
-
-function animeCover(anime) {
-  return anime?.coverImage?.large || anime?.coverImage?.medium || "";
-}
-
-/* =========================
-   FAVORITE
-========================= */
-
-favoriteButton?.addEventListener("click", async () => {
-  if (!animeId || favoriteButton.disabled) {
-    return;
-  }
-
-  favoriteButton.disabled = true;
-
-  try {
-    await addFavorite(animeId);
-
-    favoriteButton.textContent = "♥ Favorited";
-  } catch (error) {
-    console.warn("Could not add favorite:", error);
-
-    favoriteButton.disabled = false;
-  }
-});
-
-/* =========================
    START
 ========================= */
 
-if (!animeId) {
+if (!anilistId) {
   showError("No anime was selected.");
 } else {
-  loadAnime(animeId);
+  loadAnime(anilistId);
 }
 
 /* =========================
@@ -173,12 +112,25 @@ async function loadAnime(id) {
 
     renderAnime(anime);
 
-    if (isInLocalLibrary(id)) {
-      libraryButton.disabled = true;
-      libraryButton.textContent = "✓ In Library";
-    }
+    // Resolve (or create) the local database row for this
+    // anime. Seasons, episodes, favorites, library, and
+    // downloads all depend on this local id existing.
+    localAnimeId = await ensureLocalSync(id);
 
-    await loadBackendSeasons(id, anime);
+    if (localAnimeId) {
+      await refreshLibraryButtonState();
+      await refreshFavoriteButtonState();
+      await loadBackendSeasons(localAnimeId, id, anime);
+    } else {
+      seasonList.innerHTML = `
+        <div class="anime-error">
+          Could not sync this anime to the backend, so seasons,
+          episodes, and downloads aren't available right now.
+        </div>
+      `;
+
+      renderFallbackEpisodes(anime);
+    }
   } catch (error) {
     console.error("Anime loading failed:", error);
 
@@ -187,16 +139,11 @@ async function loadAnime(id) {
 }
 
 /* =========================
-   ANIME EXTRACTION
+   ANIME EXTRACTION (AniList shape)
 ========================= */
 
 function extractAnime(response) {
-  const candidates = [
-    response?.anime,
-    response?.result,
-    response?.data,
-    response
-  ];
+  const candidates = [response?.anime, response?.result, response?.data, response];
 
   return (
     candidates.find(
@@ -209,6 +156,31 @@ function extractAnime(response) {
 }
 
 /* =========================
+   LOCAL SYNC
+========================= */
+
+async function ensureLocalSync(id) {
+  try {
+    const existing = await getSyncedAnime(id);
+    const local = existing?.anime;
+
+    if (local?.id) {
+      return local.id;
+    }
+  } catch (error) {
+    // Not synced yet — fall through and sync it now.
+  }
+
+  try {
+    const created = await syncAnime(id);
+    return created?.anime?.id || null;
+  } catch (error) {
+    console.warn("Anime sync failed:", error);
+    return null;
+  }
+}
+
+/* =========================
    RENDER ANIME
 ========================= */
 
@@ -217,8 +189,6 @@ function renderAnime(anime) {
     anime?.title?.english ||
     anime?.title?.romaji ||
     anime?.title?.native ||
-    anime?.title_english ||
-    anime?.title_romaji ||
     "Unknown Anime";
 
   const format = anime?.format || "ANIME";
@@ -231,15 +201,12 @@ function renderAnime(anime) {
 
   const year = anime?.seasonYear || "";
 
-  const description = cleanDescription(
-    anime?.description || "No description available."
-  );
+  const description = cleanDescription(anime?.description || "No description available.");
 
   const poster =
     anime?.coverImage?.extraLarge ||
     anime?.coverImage?.large ||
     anime?.coverImage?.medium ||
-    anime?.cover_image ||
     "";
 
   const banner = anime?.bannerImage || "";
@@ -268,48 +235,146 @@ function renderAnime(anime) {
   }
 }
 
-/* =========================
-   ALTERNATE TITLES
-========================= */
-
 function renderAltTitles(anime, mainTitle) {
   if (!altTitlesElement) {
     return;
   }
 
-  const alternates = [
-    anime?.title?.romaji,
-    anime?.title?.native
-  ].filter((value) => value && value !== mainTitle);
+  const alternates = [anime?.title?.romaji, anime?.title?.native].filter(
+    (value) => value && value !== mainTitle
+  );
 
   altTitlesElement.textContent = alternates.join(" • ");
 }
 
 /* =========================
-   LOAD BACKEND SEASONS
+   ADD TO LIBRARY
 ========================= */
 
-async function loadBackendSeasons(id, anime) {
+libraryButton?.addEventListener("click", async () => {
+  if (!anilistId || libraryButton.disabled) {
+    return;
+  }
+
+  libraryButton.disabled = true;
+  libraryButton.textContent = "Adding...";
+
+  try {
+    const response = await syncAnimeToLibrary(anilistId);
+
+    // This call also syncs the anime, so pick up the local id
+    // now if we didn't already have it.
+    localAnimeId = localAnimeId || response?.anime?.id || null;
+
+    if (currentAnime) {
+      addToLocalLibrary({
+        animeId: anilistId,
+        title: animeTitle(currentAnime),
+        coverImage: animeCover(currentAnime),
+        format: currentAnime?.format || "ANIME",
+        episodes: currentAnime?.episodes ?? null
+      });
+    }
+
+    libraryButton.textContent = "✓ In Library";
+  } catch (error) {
+    console.warn("Could not add to library:", error);
+
+    libraryButton.disabled = false;
+    libraryButton.textContent = "＋ Add to Library";
+  }
+});
+
+async function refreshLibraryButtonState() {
+  if (!localAnimeId || !libraryButton) {
+    return;
+  }
+
+  try {
+    await getLibraryAnime(localAnimeId);
+
+    libraryButton.disabled = true;
+    libraryButton.textContent = "✓ In Library";
+  } catch {
+    // Not in the library yet — leave the button as-is.
+  }
+}
+
+/* =========================
+   FAVORITE
+========================= */
+
+favoriteButton?.addEventListener("click", async () => {
+  if (favoriteButton.disabled) {
+    return;
+  }
+
+  if (!localAnimeId) {
+    localAnimeId = await ensureLocalSync(anilistId);
+  }
+
+  if (!localAnimeId) {
+    console.warn("Cannot favorite: anime is not synced to the backend.");
+    return;
+  }
+
+  favoriteButton.disabled = true;
+
+  try {
+    await addFavorite(localAnimeId);
+
+    favoriteButton.textContent = "♥ Favorited";
+  } catch (error) {
+    console.warn("Could not add favorite:", error);
+
+    favoriteButton.disabled = false;
+  }
+});
+
+async function refreshFavoriteButtonState() {
+  if (!localAnimeId || !favoriteButton) {
+    return;
+  }
+
+  try {
+    const response = await checkFavorite(localAnimeId);
+
+    if (response?.favorite) {
+      favoriteButton.textContent = "♥ Favorited";
+    }
+  } catch (error) {
+    console.warn("Could not check favorite state:", error);
+  }
+}
+
+function animeTitle(anime) {
+  return anime?.title?.english || anime?.title?.romaji || anime?.title?.native || "Unknown Anime";
+}
+
+function animeCover(anime) {
+  return anime?.coverImage?.large || anime?.coverImage?.medium || "";
+}
+
+/* =========================
+   LOAD BACKEND SEASONS
+   (localAnimeId, NOT the AniList id)
+========================= */
+
+async function loadBackendSeasons(localId, anilistIdForSync, anime) {
   seasonList.innerHTML = `<div class="anime-loading">Loading seasons...</div>`;
 
   try {
-    let response = await getSeasons(id);
+    let response = await getSeasons(localId);
 
     let seasons = extractArray(response);
-
-    /*
-      If the anime has not been synced to the
-      local database yet, create its local
-      season and episodes now.
-    */
 
     if (seasons.length === 0) {
       seasonList.innerHTML = `<div class="anime-loading">Syncing episodes...</div>`;
 
       try {
-        await syncAnimeEpisodes(id);
+        await syncAnimeEpisodes(anilistIdForSync);
 
-        response = await getSeasons(id);
+        response = await getSeasons(localId);
 
         seasons = extractArray(response);
       } catch (syncError) {
@@ -362,7 +427,7 @@ function renderBackendSeasons(seasons) {
     }
 
     button.textContent =
-      season.name || season.title || season.season_title || `Season ${index + 1}`;
+      season.title || season.season_title || `Season ${season.season_number ?? index + 1}`;
 
     button.addEventListener("click", async () => {
       document.querySelectorAll(".season-button").forEach((item) => {
@@ -383,7 +448,7 @@ function renderBackendSeasons(seasons) {
 }
 
 /* =========================
-   FALLBACK SEASON
+   FALLBACK SEASON (no local sync available)
 ========================= */
 
 function renderFallbackSeason(anime) {
@@ -421,7 +486,7 @@ async function loadSeasonEpisodes(seasonId) {
       return;
     }
 
-    renderBackendEpisodes(episodes);
+    await renderBackendEpisodes(episodes);
   } catch (error) {
     console.warn("Episode loading failed:", error);
 
@@ -433,29 +498,33 @@ async function loadSeasonEpisodes(seasonId) {
    BACKEND EPISODES
 ========================= */
 
-function renderBackendEpisodes(episodes) {
+async function renderBackendEpisodes(episodes) {
   episodeList.innerHTML = "";
 
   firstEpisode = episodes[0] || null;
 
-  const existingDownloads = getDownloads();
+  // Best-effort: pull real download status from the backend.
+  // Falls back to the local mirror if this fails.
+  const backendDownloads = await fetchAllDownloadsForEpisodes(episodes).catch(() => []);
+
+  const localDownloads = getLocalDownloads();
 
   episodes.forEach((episode) => {
     const card = document.createElement("article");
 
     card.className = "episode-card";
 
-    const episodeId = episode.id || episode.episode_id;
+    const episodeId = episode.id;
 
-    const number =
-      episode.number ?? episode.episode_number ?? episode.episodeNumber ?? "—";
+    const number = episode.episode_number ?? episode.episodeNumber ?? "—";
 
-    const title =
-      episode.title || episode.name || episode.episode_title || `Episode ${number}`;
+    const title = episode.title || `Episode ${number}`;
 
-    const existingDownload = existingDownloads.find(
-      (item) => String(item.episodeId) === String(episodeId)
-    );
+    const hasDownload =
+      backendDownloads.some((d) => String(d.episode_id) === String(episodeId)) ||
+      localDownloads.some(
+        (d) => String(d.episodeId) === String(episodeId) && d.status === "downloaded"
+      );
 
     const checkboxMarkup = episodeId
       ? `<input
@@ -480,7 +549,7 @@ function renderBackendEpisodes(episodes) {
         </div>
       </div>
 
-      <div class="episode-status">${downloadStatusLabel(existingDownload)}</div>
+      <div class="episode-status">${hasDownload ? "✓" : "—"}</div>
 
       <button class="episode-play" aria-label="Play episode ${escapeAttribute(number)}">
         ▶
@@ -504,28 +573,23 @@ function renderBackendEpisodes(episodes) {
   updateDownloadSelectedState();
 }
 
-function downloadStatusLabel(download) {
-  if (!download) {
-    return "—";
-  }
+async function fetchAllDownloadsForEpisodes(episodes) {
+  const results = await Promise.all(
+    episodes.map((episode) =>
+      episode.id
+        ? getEpisodeDownloads(episode.id)
+            .then((response) => extractArray(response, "downloads"))
+            .catch(() => [])
+        : Promise.resolve([])
+    )
+  );
 
-  if (download.status === "downloaded") {
-    return "✓";
-  }
-
-  if (download.status === "downloading") {
-    return "...";
-  }
-
-  if (download.status === "failed") {
-    return "⚠";
-  }
-
-  return "—";
+  return results.flat();
 }
 
 /* =========================
    FALLBACK EPISODES
+   (no local sync — numbered placeholders, no downloads)
 ========================= */
 
 function renderFallbackEpisodes(anime) {
@@ -560,19 +624,8 @@ function renderFallbackEpisodes(anime) {
 
       <div class="episode-status">—</div>
 
-      <button class="episode-play" aria-label="Play episode ${i}">▶</button>
+      <button class="episode-play" aria-label="Episode ${i} unavailable" disabled>▶</button>
     `;
-
-    const playButton = card.querySelector(".episode-play");
-
-    playButton?.addEventListener("click", (event) => {
-      event.stopPropagation();
-
-      openEpisode({
-        number: i,
-        title: `Episode ${i}`
-      });
-    });
 
     fragment.appendChild(card);
   }
@@ -585,7 +638,7 @@ function renderFallbackEpisodes(anime) {
 ========================= */
 
 function openEpisode(episode) {
-  const id = episode?.id || episode?.episode_id;
+  const id = episode?.id;
 
   if (!id) {
     console.log("Episode has no database ID:", episode);
@@ -619,8 +672,7 @@ function updateDownloadSelectedState() {
   }
 
   if (selectAllCheckbox) {
-    selectAllCheckbox.checked =
-      checkboxes.length > 0 && checkedCount === checkboxes.length;
+    selectAllCheckbox.checked = checkboxes.length > 0 && checkedCount === checkboxes.length;
   }
 }
 
@@ -633,9 +685,7 @@ downloadSelectedButton?.addEventListener("click", () => {
 });
 
 downloadAllButton?.addEventListener("click", () => {
-  const all = Array.from(document.querySelectorAll(".episode-checkbox")).map(
-    checkboxToEpisode
-  );
+  const all = Array.from(document.querySelectorAll(".episode-checkbox")).map(checkboxToEpisode);
 
   queueDownloads(all);
 });
@@ -653,20 +703,46 @@ async function queueDownloads(episodes) {
     return;
   }
 
+  if (!localAnimeId) {
+    setDownloadStatusText("This anime isn't synced to the backend, so downloads aren't available.");
+    return;
+  }
+
   isDownloadQueueRunning = true;
 
   downloadSelectedButton.disabled = true;
   downloadAllButton.disabled = true;
 
-  saveToLocalLibrary();
+  if (currentAnime) {
+    addToLocalLibrary({
+      animeId: anilistId,
+      title: animeTitle(currentAnime),
+      coverImage: animeCover(currentAnime),
+      format: currentAnime?.format || "ANIME",
+      episodes: currentAnime?.episodes ?? null
+    });
+  }
+
+  let succeeded = 0;
+  let failed = 0;
 
   for (let i = 0; i < episodes.length; i++) {
     setDownloadStatusText(`Downloading ${i + 1} of ${episodes.length}...`);
 
-    await downloadEpisode(episodes[i]);
+    const ok = await downloadEpisode(episodes[i]);
+
+    if (ok) {
+      succeeded++;
+    } else {
+      failed++;
+    }
   }
 
-  setDownloadStatusText(`Finished downloading ${episodes.length} episode${episodes.length === 1 ? "" : "s"}.`);
+  setDownloadStatusText(
+    failed > 0
+      ? `${succeeded} downloaded, ${failed} failed (no authorized source available).`
+      : `Finished downloading ${succeeded} episode${succeeded === 1 ? "" : "s"}.`
+  );
 
   isDownloadQueueRunning = false;
 
@@ -679,18 +755,10 @@ async function downloadEpisode(episode) {
   const episodeId = episode?.id;
 
   if (!episodeId) {
-    return;
+    return false;
   }
 
-  updateEpisodeStatus(episodeId, "downloading");
-  upsertDownload({
-    episodeId,
-    animeId,
-    animeTitle: animeTitle(currentAnime),
-    episodeNumber: episode.number,
-    episodeTitle: episode.title,
-    status: "downloading"
-  });
+  updateEpisodeStatusBadge(episodeId, "...");
 
   try {
     const sourcesResponse = await getVideoSources(episodeId);
@@ -703,29 +771,50 @@ async function downloadEpisode(episode) {
 
     triggerBrowserDownload(sourceUrl, episode);
 
-    updateEpisodeStatus(episodeId, "downloaded");
-    upsertDownload({
+    // Persist the download record on the backend so it survives
+    // a refresh (and shows up in the anime's downloaded state).
+    try {
+      await createDownload({
+        episodeId,
+        storageKey: sourceUrl,
+        fileName: `${animeTitle(currentAnime)} - Episode ${episode.number}`.trim(),
+        status: "ready"
+      });
+    } catch (backendError) {
+      // Most likely a duplicate storageKey, meaning this episode
+      // was already recorded as downloaded — not a real failure.
+      console.warn("Backend download record not created:", backendError);
+    }
+
+    upsertLocalDownload({
       episodeId,
-      animeId,
+      animeId: anilistId,
       animeTitle: animeTitle(currentAnime),
       episodeNumber: episode.number,
       episodeTitle: episode.title,
       status: "downloaded",
       sourceUrl
     });
+
+    updateEpisodeStatusBadge(episodeId, "✓");
+
+    return true;
   } catch (error) {
     console.warn(`Download failed for episode ${episode.number}:`, error);
 
-    updateEpisodeStatus(episodeId, "failed");
-    upsertDownload({
+    upsertLocalDownload({
       episodeId,
-      animeId,
+      animeId: anilistId,
       animeTitle: animeTitle(currentAnime),
       episodeNumber: episode.number,
       episodeTitle: episode.title,
       status: "failed",
       error: error.message
     });
+
+    updateEpisodeStatusBadge(episodeId, "⚠");
+
+    return false;
   }
 }
 
@@ -743,36 +832,22 @@ function triggerBrowserDownload(url, episode) {
 }
 
 function extractSourceUrl(response) {
-  const list =
-    (Array.isArray(response?.sources) && response.sources) ||
-    (Array.isArray(response?.result) && response.result) ||
-    (Array.isArray(response?.data) && response.data) ||
-    (Array.isArray(response) && response) ||
-    [];
+  const list = Array.isArray(response?.sources) ? response.sources : [];
 
   const first = list[0];
 
-  return (
-    first?.url ||
-    first?.source ||
-    first?.file ||
-    response?.url ||
-    response?.source ||
-    null
-  );
+  return first?.source_url || first?.url || null;
 }
 
-function updateEpisodeStatus(episodeId, status) {
+function updateEpisodeStatusBadge(episodeId, label) {
   const checkbox = document.querySelector(
     `.episode-checkbox[data-episode-id="${CSS.escape(String(episodeId))}"]`
   );
 
-  const statusElement = checkbox
-    ?.closest(".episode-card")
-    ?.querySelector(".episode-status");
+  const statusElement = checkbox?.closest(".episode-card")?.querySelector(".episode-status");
 
   if (statusElement) {
-    statusElement.textContent = downloadStatusLabel({ status });
+    statusElement.textContent = label;
   }
 }
 
@@ -786,17 +861,13 @@ function setDownloadStatusText(text) {
    ARRAY EXTRACTION
 ========================= */
 
-function extractArray(response) {
+function extractArray(response, preferredKey) {
   if (Array.isArray(response)) {
     return response;
   }
 
-  if (Array.isArray(response?.result)) {
-    return response.result;
-  }
-
-  if (Array.isArray(response?.data)) {
-    return response.data;
+  if (preferredKey && Array.isArray(response?.[preferredKey])) {
+    return response[preferredKey];
   }
 
   if (Array.isArray(response?.seasons)) {
@@ -805,6 +876,18 @@ function extractArray(response) {
 
   if (Array.isArray(response?.episodes)) {
     return response.episodes;
+  }
+
+  if (Array.isArray(response?.downloads)) {
+    return response.downloads;
+  }
+
+  if (Array.isArray(response?.result)) {
+    return response.result;
+  }
+
+  if (Array.isArray(response?.data)) {
+    return response.data;
   }
 
   return [];
