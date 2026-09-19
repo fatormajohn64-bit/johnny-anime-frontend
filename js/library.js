@@ -1,5 +1,5 @@
 import { getLibrary as getBackendLibrary } from "./api.js";
-import { getLibrary, removeFromLibrary, getDownloadsForAnime } from "./storage.js";
+import { getLibrary as getLocalLibrary, getDownloadsForAnime } from "./storage.js";
 
 const listElement = document.getElementById("library-list");
 const statusElement = document.getElementById("library-status");
@@ -11,42 +11,46 @@ loadLibrary();
 ========================= */
 
 async function loadLibrary() {
-  const localLibrary = getLibrary();
-
-  renderLibrary(localLibrary);
-
-  // Best-effort backend sync. The local copy above is the
-  // source of truth that's guaranteed to work; this just
-  // adds anything the backend already knows about that
-  // isn't in the local list yet.
   try {
     const response = await getBackendLibrary();
 
-    const backendItems = extractArray(response);
+    const items = extractArray(response).map(normalizeBackendItem);
 
-    const merged = mergeLibraries(localLibrary, backendItems);
+    // Fold in anything saved locally that the backend doesn't
+    // know about yet (e.g. a save that happened while offline).
+    const merged = mergeWithLocal(items);
 
     renderLibrary(merged);
   } catch (error) {
     console.warn("Backend library unavailable, showing local library only:", error);
+
+    renderLibrary(getLocalLibrary());
   }
 }
 
-function mergeLibraries(localLibrary, backendItems) {
-  const knownIds = new Set(localLibrary.map((item) => String(item.animeId)));
+function normalizeBackendItem(item) {
+  return {
+    // The AniList ID — this is what the anime detail page
+    // needs to load live AniList data.
+    animeId: item.anilist_id,
 
-  const extra = backendItems
-    .map((item) => ({
-      animeId: item.animeId || item.anime_id || item.id,
-      title: item.title || item.name || "Unknown Anime",
-      coverImage: item.coverImage || item.cover_image || "",
-      format: item.format || "ANIME",
-      episodes: item.episodes ?? null,
-      addedAt: 0
-    }))
-    .filter((item) => item.animeId && !knownIds.has(String(item.animeId)));
+    // The local database ID — used to look up downloads.
+    localAnimeId: item.id,
 
-  return [...localLibrary, ...extra];
+    title: item.title_english || item.title_romaji || item.title_native || "Unknown Anime",
+    coverImage: item.cover_image || "",
+    format: item.format || "ANIME",
+    episodes: item.total_episodes ?? null,
+    addedAt: item.added_at ? new Date(item.added_at).getTime() : 0
+  };
+}
+
+function mergeWithLocal(backendItems) {
+  const knownIds = new Set(backendItems.map((item) => String(item.animeId)));
+
+  const extra = getLocalLibrary().filter((item) => !knownIds.has(String(item.animeId)));
+
+  return [...backendItems, ...extra];
 }
 
 /* =========================
@@ -100,23 +104,11 @@ function renderLibrary(items) {
             : ""
         }
       </div>
-
-      <button class="library-remove" aria-label="Remove from library">✕</button>
     `;
 
     card.addEventListener("click", () => {
       sessionStorage.setItem("selectedAnimeId", String(item.animeId));
       window.location.hash = "anime";
-    });
-
-    const removeButton = card.querySelector(".library-remove");
-
-    removeButton?.addEventListener("click", (event) => {
-      event.stopPropagation();
-
-      const updated = removeFromLibrary(item.animeId);
-
-      renderLibrary(updated);
     });
 
     listElement.appendChild(card);
@@ -130,14 +122,6 @@ function renderLibrary(items) {
 function extractArray(response) {
   if (Array.isArray(response)) {
     return response;
-  }
-
-  if (Array.isArray(response?.result)) {
-    return response.result;
-  }
-
-  if (Array.isArray(response?.data)) {
-    return response.data;
   }
 
   if (Array.isArray(response?.library)) {
