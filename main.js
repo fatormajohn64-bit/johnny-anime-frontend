@@ -31,6 +31,12 @@ const pages = {
     html: "./pages/settings.html",
     css: "./css/settings.css",
     js: "./js/settings.js"
+  },
+
+  admin: {
+    html: "./pages/admin.html",
+    css: "./css/admin.css",
+    js: "./js/admin.js"
   }
 };
 
