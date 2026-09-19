@@ -1,0 +1,94 @@
+<section class="admin-page">
+
+  <div class="admin-topbar">
+    <span>ADMIN — ADD VIDEO SOURCES</span>
+  </div>
+
+  <div class="admin-content">
+
+    <!-- Step 1: load an anime by AniList ID -->
+    <div class="admin-section">
+      <h2>1. Load Anime</h2>
+
+      <p class="admin-hint">
+        Find the AniList ID from a search result URL, or just search
+        for the anime first and note its ID from the detail page.
+      </p>
+
+      <div class="admin-row">
+        <input
+          type="number"
+          id="admin-anilist-id"
+          class="admin-input"
+          placeholder="AniList ID (e.g. 20 for Naruto)"
+        >
+
+        <button id="admin-load-anime" class="admin-button" type="button">
+          Load
+        </button>
+      </div>
+
+      <p id="admin-anime-status" class="admin-status"></p>
+    </div>
+
+    <!-- Step 2: pick a season + episode -->
+    <div class="admin-section" id="admin-episodes-section" hidden>
+      <h2>2. Pick an Episode</h2>
+
+      <div id="admin-season-list" class="admin-season-list"></div>
+
+      <button id="admin-sync-episodes" class="admin-button-outline" type="button" hidden>
+        Sync Episodes from AniList
+      </button>
+
+      <div id="admin-episode-list" class="admin-episode-list"></div>
+    </div>
+
+    <!-- Step 3: add a video source for the selected episode -->
+    <div class="admin-section" id="admin-source-section" hidden>
+      <h2>3. Add Video Source</h2>
+
+      <p id="admin-selected-episode" class="admin-hint"></p>
+
+      <label class="admin-label">Video URL</label>
+      <input
+        type="url"
+        id="admin-source-url"
+        class="admin-input"
+        placeholder="https://yourproject.supabase.co/storage/v1/object/public/videos/ep1.mp4"
+      >
+
+      <div class="admin-row">
+        <div class="admin-field">
+          <label class="admin-label">Source Type</label>
+          <select id="admin-source-type" class="admin-input">
+            <option value="direct">direct</option>
+            <option value="hls">hls</option>
+          </select>
+        </div>
+
+        <div class="admin-field">
+          <label class="admin-label">Quality</label>
+          <select id="admin-source-quality" class="admin-input">
+            <option value="1080p">1080p</option>
+            <option value="720p">720p</option>
+            <option value="480p">480p</option>
+            <option value="Auto">Auto</option>
+          </select>
+        </div>
+      </div>
+
+      <button id="admin-add-source" class="admin-button" type="button">
+        Save Video Source
+      </button>
+
+      <p id="admin-source-status" class="admin-status"></p>
+
+      <h3 class="admin-subheading">Existing sources for this episode</h3>
+
+      <div id="admin-source-list" class="admin-source-list"></div>
+    </div>
+
+  </div>
+
+</section>
