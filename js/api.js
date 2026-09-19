@@ -135,6 +135,19 @@ export async function getVideoSources(episodeId) {
   return request(`/api/video-sources/episode/${encodeURIComponent(episodeId)}`);
 }
 
+export async function addVideoSource({ episodeId, sourceType, sourceUrl, quality, format, sizeBytes }) {
+  return request("/api/video-sources", {
+    method: "POST",
+    body: JSON.stringify({ episodeId, sourceType, sourceUrl, quality, format, sizeBytes })
+  });
+}
+
+export async function removeVideoSource(sourceId) {
+  return request(`/api/video-sources/${encodeURIComponent(sourceId)}`, {
+    method: "DELETE"
+  });
+}
+
 /* =========================
    WATCH PROGRESS
    Requires positionSeconds / durationSeconds (numbers).
