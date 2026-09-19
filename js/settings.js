@@ -3,6 +3,7 @@ import { getSettings, saveSettings, clearAllDownloadsAndLibrary } from "./storag
 const autoplayCheckbox = document.getElementById("setting-autoplay-next");
 const autoResumeCheckbox = document.getElementById("setting-auto-resume");
 const clearButton = document.getElementById("clear-local-data");
+const openAdminButton = document.getElementById("open-admin");
 
 /* =========================
    LOAD CURRENT SETTINGS
@@ -34,6 +35,14 @@ autoResumeCheckbox?.addEventListener("change", () => {
     ...getSettings(),
     autoResume: autoResumeCheckbox.checked
   });
+});
+
+/* =========================
+   OPEN ADMIN
+========================= */
+
+openAdminButton?.addEventListener("click", () => {
+  window.location.hash = "admin";
 });
 
 /* =========================
