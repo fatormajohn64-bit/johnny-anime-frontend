@@ -1,4 +1,5 @@
 import {
+  searchAnime,
   getAnimeById,
   getSyncedAnime,
   syncAnime,
@@ -13,6 +14,10 @@ import {
 /* =========================
    ELEMENTS
 ========================= */
+
+const searchInput = document.getElementById("admin-search-input");
+const searchButton = document.getElementById("admin-search-button");
+const searchResults = document.getElementById("admin-search-results");
 
 const anilistIdInput = document.getElementById("admin-anilist-id");
 const loadAnimeButton = document.getElementById("admin-load-anime");
@@ -41,12 +46,76 @@ let currentLocalAnimeId = null;
 let selectedEpisodeId = null;
 
 /* =========================
+   SEARCH
+========================= */
+
+searchButton?.addEventListener("click", runSearch);
+
+searchInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    runSearch();
+  }
+});
+
+async function runSearch() {
+  const query = searchInput?.value.trim();
+
+  if (!query) {
+    return;
+  }
+
+  searchResults.innerHTML = `<p class="admin-hint">Searching...</p>`;
+
+  try {
+    const response = await searchAnime(query);
+    const results = Array.isArray(response?.results) ? response.results : [];
+
+    if (results.length === 0) {
+      searchResults.innerHTML = `<p class="admin-hint">No results.</p>`;
+      return;
+    }
+
+    searchResults.innerHTML = "";
+
+    results.slice(0, 10).forEach((anime) => {
+      const title = anime?.title?.english || anime?.title?.romaji || "Unknown";
+      const cover = anime?.coverImage?.medium || anime?.coverImage?.large || "";
+      const format = anime?.format || "";
+      const year = anime?.seasonYear || "";
+
+      const row = document.createElement("div");
+
+      row.className = "admin-search-result";
+
+      row.innerHTML = `
+        ${cover ? `<img class="admin-search-result-cover" src="${escapeAttribute(cover)}" alt="">` : ""}
+        <div class="admin-search-result-info">
+          <div class="admin-search-result-title">${escapeHtml(title)}</div>
+          <div class="admin-search-result-meta">${escapeHtml(format)} ${year ? `• ${escapeHtml(year)}` : ""} • ID ${escapeHtml(anime.id)}</div>
+        </div>
+      `;
+
+      row.addEventListener("click", () => {
+        anilistIdInput.value = anime.id;
+        searchResults.innerHTML = "";
+        searchInput.value = "";
+        loadAnimeById(anime.id);
+      });
+
+      searchResults.appendChild(row);
+    });
+  } catch (error) {
+    console.error("Admin search failed:", error);
+    searchResults.innerHTML = `<p class="admin-hint">Search failed: ${escapeHtml(error.message)}</p>`;
+  }
+}
+
+/* =========================
    STEP 1 — LOAD ANIME
 ========================= */
 
-loadAnimeButton?.addEventListener("click", loadAnime);
-
-async function loadAnime() {
+loadAnimeButton?.addEventListener("click", () => {
   const anilistId = anilistIdInput?.value.trim();
 
   if (!anilistId) {
@@ -54,6 +123,10 @@ async function loadAnime() {
     return;
   }
 
+  loadAnimeById(anilistId);
+});
+
+async function loadAnimeById(anilistId) {
   loadAnimeButton.disabled = true;
   animeStatus.textContent = "Loading...";
 
@@ -324,4 +397,8 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value);
 }
