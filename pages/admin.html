@@ -6,13 +6,27 @@
 
   <div class="admin-content">
 
-    <!-- Step 1: load an anime by AniList ID -->
+    <!-- Step 1: find and load an anime -->
     <div class="admin-section">
-      <h2>1. Load Anime</h2>
+      <h2>1. Find Anime</h2>
+
+      <div class="admin-row">
+        <input
+          type="text"
+          id="admin-search-input"
+          class="admin-input"
+          placeholder="Search by name (e.g. Naruto)"
+        >
+
+        <button id="admin-search-button" class="admin-button" type="button">
+          Search
+        </button>
+      </div>
+
+      <div id="admin-search-results" class="admin-search-results"></div>
 
       <p class="admin-hint">
-        Find the AniList ID from a search result URL, or just search
-        for the anime first and note its ID from the detail page.
+        Or enter an AniList ID directly if you already know it:
       </p>
 
       <div class="admin-row">
@@ -20,7 +34,7 @@
           type="number"
           id="admin-anilist-id"
           class="admin-input"
-          placeholder="AniList ID (e.g. 20 for Naruto)"
+          placeholder="AniList ID (e.g. 20)"
         >
 
         <button id="admin-load-anime" class="admin-button" type="button">
