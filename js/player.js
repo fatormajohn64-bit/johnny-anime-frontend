@@ -132,7 +132,8 @@ async function loadPlayer(
 
     currentEpisode =
       extractObject(
-        episodeResponse
+        episodeResponse,
+        "episode"
       );
 
     if (
@@ -182,27 +183,15 @@ async function loadPlayer(
 function renderEpisode(
   episode
 ) {
-  const anime =
-    episode?.anime ||
-    episode?.anime_title ||
-    episode?.series_title ||
-    episode?.show_title ||
-    "JohnnyTech × Naruto";
-
   const number =
-    episode?.number ??
     episode?.episode_number ??
     episode?.episodeNumber ??
     "—";
 
   const title =
     episode?.title ||
-    episode?.name ||
     `Episode ${number}`;
 
-
-  animeTitle.textContent =
-    anime;
 
   episodeTitle.textContent =
     title;
@@ -227,7 +216,8 @@ async function loadProgress(
 
     const progress =
       extractObject(
-        response
+        response,
+        "progress"
       );
 
     if (!progress) {
@@ -237,16 +227,14 @@ async function loadProgress(
 
     const position =
       Number(
-        progress.position ||
-        progress.current_time ||
-        progress.currentTime ||
+        progress.position_seconds ||
         0
       );
 
 
     const duration =
       Number(
-        progress.duration ||
+        progress.duration_seconds ||
         0
       );
 
@@ -300,13 +288,10 @@ async function saveCurrentProgress() {
     await saveWatchProgress(
       currentEpisodeId,
       {
-        position:
+        positionSeconds:
           video.currentTime,
 
-        currentTime:
-          video.currentTime,
-
-        duration:
+        durationSeconds:
           Number.isFinite(
             video.duration
           )
@@ -533,22 +518,25 @@ async function loadNavigation(
       );
 
     const data =
-      response?.result ||
-      response?.data ||
-      response ||
+      response?.navigation ||
       {};
 
+    const animeInfo =
+      data.anime || {};
+
+    if (animeTitle) {
+      animeTitle.textContent =
+        animeInfo.titleEnglish ||
+        animeInfo.titleRomaji ||
+        animeInfo.titleNative ||
+        animeTitle.textContent;
+    }
+
     previousEpisodeId =
-      data.previousEpisodeId ||
-      data.previous_episode_id ||
-      data.previousEpisode?.id ||
       data.previous?.id ||
       null;
 
     nextEpisodeId =
-      data.nextEpisodeId ||
-      data.next_episode_id ||
-      data.nextEpisode?.id ||
       data.next?.id ||
       null;
 
@@ -725,13 +713,12 @@ function renderSources(
         );
 
       const name =
-        source?.name ||
-        source?.provider ||
+        source?.source_type ||
+        source?.format ||
         `Source ${index + 1}`;
 
       const quality =
         source?.quality ||
-        source?.resolution ||
         "Auto";
 
 
@@ -829,6 +816,7 @@ function getSourceUrl(
   source
 ) {
   return (
+    source?.source_url ||
     source?.url ||
     source?.video_url ||
     source?.videoUrl ||
@@ -975,8 +963,19 @@ function showError(
 ========================= */
 
 function extractObject(
-  response
+  response,
+  preferredKey
 ) {
+  if (
+    preferredKey &&
+    response?.[preferredKey] &&
+    typeof response[preferredKey] ===
+      "object"
+  ) {
+    return response[preferredKey];
+  }
+
+
   if (
     response?.result &&
     typeof response.result ===
