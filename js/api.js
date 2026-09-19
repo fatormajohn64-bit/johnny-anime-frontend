@@ -28,7 +28,7 @@ async function request(endpoint, options = {}) {
   }
 
   if (!response.ok) {
-    const serverMessage = data?.error || data?.message || data?.detail;
+    const serverMessage = data?.error || data?.message;
 
     throw new Error(
       serverMessage || `Request failed with HTTP ${response.status} ${response.statusText}`
@@ -46,12 +46,8 @@ export async function checkHealth() {
   return request("/api/health");
 }
 
-export async function checkDatabaseHealth() {
-  return request("/api/database/health");
-}
-
 /* =========================
-   ANIME
+   ANIME (live AniList data)
 ========================= */
 
 export async function searchAnime(query) {
@@ -64,52 +60,55 @@ export async function searchAnime(query) {
   return request(`/api/anime/search?q=${encodeURIComponent(cleanQuery)}`);
 }
 
-export async function getAnimeById(id) {
-  return request(`/api/anime/${encodeURIComponent(id)}`);
+// Live AniList lookup by AniList ID. Response: { success, anime }
+export async function getAnimeById(anilistId) {
+  return request(`/api/anime/${encodeURIComponent(anilistId)}`);
 }
 
 /* =========================
-   LIBRARY
+   ANIME SYNC
+   (AniList metadata -> local database row)
 ========================= */
 
-export async function getLibrary() {
-  return request("/api/library");
+// Response: { success, anime } — anime.id is the LOCAL database id.
+export async function getSyncedAnime(anilistId) {
+  return request(`/api/anime-sync/${encodeURIComponent(anilistId)}`);
 }
 
-export async function addToLibrary(anime) {
-  return request("/api/library", {
-    method: "POST",
-    body: JSON.stringify(anime)
+export async function syncAnime(anilistId) {
+  return request(`/api/anime-sync/${encodeURIComponent(anilistId)}`, {
+    method: "POST"
   });
 }
 
-export async function getLibraryItem(id) {
-  return request(`/api/library/${encodeURIComponent(id)}`);
-}
-
-export async function removeFromLibrary(id) {
-  return request(`/api/library/${encodeURIComponent(id)}`, {
-    method: "DELETE"
+// Syncs the anime AND adds it to the library in one call.
+export async function syncAnimeToLibrary(anilistId) {
+  return request(`/api/anime-sync/${encodeURIComponent(anilistId)}/library`, {
+    method: "POST"
   });
 }
 
 /* =========================
-   SEASONS
+   SEASONS & EPISODES
+   (all IDs here are LOCAL database ids)
 ========================= */
 
-export async function getSeasons(animeId) {
-  return request(`/api/anime/${encodeURIComponent(animeId)}/seasons`);
+export async function getSeasons(localAnimeId) {
+  return request(`/api/anime/${encodeURIComponent(localAnimeId)}/seasons`);
 }
 
-export async function createSeason(animeId, season) {
-  return request(`/api/anime/${encodeURIComponent(animeId)}/seasons`, {
-    method: "POST",
-    body: JSON.stringify(season)
-  });
+export async function getEpisodes(seasonId) {
+  return request(`/api/season/${encodeURIComponent(seasonId)}/episodes`);
+}
+
+// Response: { success, episode }
+export async function getEpisode(episodeId) {
+  return request(`/api/episode/${encodeURIComponent(episodeId)}`);
 }
 
 /* =========================
    EPISODE SYNC
+   (generates local seasons/episodes for a synced anime)
 ========================= */
 
 export async function syncAnimeEpisodes(anilistId) {
@@ -119,26 +118,8 @@ export async function syncAnimeEpisodes(anilistId) {
 }
 
 /* =========================
-   EPISODES
-========================= */
-
-export async function getEpisodes(seasonId) {
-  return request(`/api/season/${encodeURIComponent(seasonId)}/episodes`);
-}
-
-export async function createEpisode(seasonId, episode) {
-  return request(`/api/season/${encodeURIComponent(seasonId)}/episodes`, {
-    method: "POST",
-    body: JSON.stringify(episode)
-  });
-}
-
-export async function getEpisode(episodeId) {
-  return request(`/api/episode/${encodeURIComponent(episodeId)}`);
-}
-
-/* =========================
    EPISODE NAVIGATION
+   Response: { success, navigation: { anime, season, current, previous, next } }
 ========================= */
 
 export async function getEpisodeNavigation(episodeId) {
@@ -147,100 +128,98 @@ export async function getEpisodeNavigation(episodeId) {
 
 /* =========================
    VIDEO SOURCES
+   Response: { success, count, sources }
 ========================= */
 
 export async function getVideoSources(episodeId) {
-  return request(`/api/episode/${encodeURIComponent(episodeId)}/video-sources`);
+  return request(`/api/video-sources/episode/${encodeURIComponent(episodeId)}`);
 }
 
 /* =========================
    WATCH PROGRESS
+   Requires positionSeconds / durationSeconds (numbers).
+   Save uses PUT, not POST.
 ========================= */
 
 export async function getWatchProgress(episodeId) {
-  return request(`/api/watch-progress/${encodeURIComponent(episodeId)}`);
+  return request(`/api/watch-progress/episode/${encodeURIComponent(episodeId)}`);
 }
 
-export async function saveWatchProgress(episodeId, progress) {
-  return request(`/api/watch-progress/${encodeURIComponent(episodeId)}`, {
-    method: "POST",
-    body: JSON.stringify(progress)
+export async function saveWatchProgress(episodeId, { positionSeconds, durationSeconds, completed }) {
+  return request(`/api/watch-progress/episode/${encodeURIComponent(episodeId)}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      positionSeconds,
+      durationSeconds,
+      completed: completed === true
+    })
   });
 }
 
 /* =========================
-   PLAYER
+   LIBRARY
+   (local ids)
 ========================= */
 
-export async function getPlayerData(episodeId) {
-  return request(`/api/player/${encodeURIComponent(episodeId)}`);
+export async function getLibrary() {
+  return request("/api/library");
 }
 
-/* =========================
-   CONTINUE WATCHING
-========================= */
-
-export async function getContinueWatching() {
-  return request("/api/continue-watching");
+export async function getLibraryAnime(localAnimeId) {
+  return request(`/api/library/${encodeURIComponent(localAnimeId)}`);
 }
 
-/* =========================
-   WATCH HISTORY
-========================= */
-
-export async function getWatchHistory() {
-  return request("/api/watch-history");
-}
-
-/* =========================
-   RESUME
-========================= */
-
-export async function getResume(episodeId) {
-  return request(`/api/resume/${encodeURIComponent(episodeId)}`);
-}
-
-/* =========================
-   FAVORITES
-========================= */
-
-export async function getFavorites() {
-  return request("/api/favorites");
-}
-
-export async function addFavorite(animeId) {
-  return request("/api/favorites", {
-    method: "POST",
-    body: JSON.stringify({ animeId })
-  });
-}
-
-export async function removeFavorite(animeId) {
-  return request(`/api/favorites/${encodeURIComponent(animeId)}`, {
+export async function removeFromLibrary(localAnimeId) {
+  return request(`/api/library/${encodeURIComponent(localAnimeId)}`, {
     method: "DELETE"
   });
 }
 
 /* =========================
-   DASHBOARD
+   FAVORITES
+   (local anime id, in the URL, no body)
 ========================= */
 
-export async function getDashboard() {
-  return request("/api/dashboard");
+export async function addFavorite(localAnimeId) {
+  return request(`/api/favorites/anime/${encodeURIComponent(localAnimeId)}`, {
+    method: "POST"
+  });
+}
+
+export async function removeFavorite(localAnimeId) {
+  return request(`/api/favorites/anime/${encodeURIComponent(localAnimeId)}`, {
+    method: "DELETE"
+  });
+}
+
+export async function checkFavorite(localAnimeId) {
+  return request(`/api/favorites/anime/${encodeURIComponent(localAnimeId)}/check`);
 }
 
 /* =========================
    DOWNLOADS
+   storageKey is required + unique per record.
 ========================= */
 
 export async function getDownloads() {
   return request("/api/downloads");
 }
 
+export async function getEpisodeDownloads(episodeId) {
+  return request(`/api/downloads/episode/${encodeURIComponent(episodeId)}`);
+}
+
 export async function createDownload(download) {
   return request("/api/downloads", {
     method: "POST",
     body: JSON.stringify(download)
+  });
+}
+
+export async function updateDownloadStatus(downloadId, status) {
+  return request(`/api/downloads/${encodeURIComponent(downloadId)}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status })
   });
 }
 
